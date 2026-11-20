@@ -53,26 +53,64 @@
 
 ## 部署
 
-点上方 **Deploy to Cloudflare** 按钮，按页面提示操作：
+准备：一个 Cloudflare 账户（免费版即可）和一个 GitHub 账户。想用自己的域名，域名需要已经托管在 Cloudflare。
 
-1. 用 GitHub 登录 Cloudflare，它会把本仓库复制到你的 GitHub 账户，之后推送代码就会自动重新部署
-2. R2 桶会自动创建，名称可以改
-3. 填写密钥：
+### 第 1 步：一键部署
 
-   | 名称 | 说明 |
+1. 点上方 **Deploy to Cloudflare** 按钮，登录 Cloudflare
+2. 按提示连接 GitHub 并授权。Cloudflare 会把本仓库复制一份到你的 GitHub 账户，以后在那里改代码会自动重新部署
+3. 项目名称保持 `cf-imghub` 或自己改
+4. R2 桶保持新建，名称可以改
+5. 依次填写下面 5 个密钥（页面上每项都附有说明）：
+
+   | 名称 | 填什么 |
    |------|------|
-   | `SESSION_SECRET` | 随机长字符串，用来签名登录会话；更换即让所有人重新登录 |
-   | `UPLOAD_PASSWORD` | 上传页密码 |
-   | `ADMIN_USER` / `ADMIN_PASSWORD` | 管理页账号与密码 |
-   | `UPLOAD_TOKEN` | 脚本上传用的 Token；不用也请随便填一串随机字符 |
+   | `SESSION_SECRET` | 一串随机长字符串，用来签名登录会话 |
+   | `UPLOAD_PASSWORD` | 上传页的密码 |
+   | `ADMIN_USER` | 管理页的账号 |
+   | `ADMIN_PASSWORD` | 管理页的密码 |
+   | `UPLOAD_TOKEN` | 脚本上传用的 Token；不用脚本也请填一串随机字符 |
 
-4. 部署完成后，在 Worker 的 **Settings → Domains & Routes** 绑定自定义域名（如 `img.example.com`）
+   随机字符串可以用密码管理器生成，或在终端运行 `openssl rand -hex 32`。名称区分大小写，值的前后不要带空格
+6. 点页面底部的部署按钮，等待构建完成（约 1–2 分钟）
 
-打开 `https://img.example.com/` 是上传页，`/admin` 是管理页。
+完成后会得到一个 `https://cf-imghub.<你的子域>.workers.dev` 地址，已经可以打开使用。
+
+### 第 2 步：绑定自己的域名（推荐）
+
+`workers.dev` 地址用不上 Cloudflare 的边缘缓存，每次都要读 R2，正式使用请绑定域名：
+
+1. 打开 [Cloudflare 控制台](https://dash.cloudflare.com/)，左侧选「Workers 和 Pages」，点进 `cf-imghub`
+2. 进入「设置」→「域和路由」→「添加」→「自定义域」
+3. 填写子域名，如 `img.example.com`，确认。DNS 记录和证书会自动创建，几分钟内生效
+
+### 第 3 步：确认可以用
+
+1. 打开 `https://img.example.com/`，输入上传密码，传一张图片，复制返回的链接在新标签页打开
+2. 打开 `https://img.example.com/admin`，用管理账号登录，能看到刚才那张图
 
 **防盗链默认关闭。**要开启时，先在管理页的「放行网站」把预置的示例域名换成你博客的域名（子域名一并放行），再打开开关，否则博客里的图片会被拦下。
 
-如果图床同时绑了多个域名，可以在 Worker 的 **Settings → Variables and Secrets** 添加变量 `PUBLIC_BASE`（如 `https://img.example.com`），上传后返回的链接统一用这个域名。
+### 以后修改密码或设置
+
+都在「Workers 和 Pages」→ `cf-imghub` →「设置」→「变量和机密」：
+
+- **修改**：点该项右侧的编辑，填入新的「值」，再点「部署」
+- **新增**：点「添加」，类型选「**密钥**」，填写「变量名称」和「值」，再点「部署」
+- 密码类一律选「密钥」；选「文本」也能用，但值会明文显示在面板上
+- 修改 `SESSION_SECRET` 会让所有人重新登录；修改某个密码只会让对应的登录失效
+
+可选设置：图床绑了多个域名时，可以添加 `PUBLIC_BASE`（类型「文本」，值如 `https://img.example.com`），上传后返回的链接统一用这个域名。
+
+### 常见问题
+
+| 现象 | 原因与处理 |
+|------|------|
+| 登录时提示「服务器尚未设置这种登录方式」 | 缺少 `SESSION_SECRET`，或缺少这个页面的密码（上传页要 `UPLOAD_PASSWORD`，管理页要 `ADMIN_USER` 和 `ADMIN_PASSWORD`）。到「变量和机密」核对名称拼写 |
+| 提示「密码不正确」，但确定没输错 | 检查「值」的前后是否多了空格或换行 |
+| 脚本上传返回 401 | `UPLOAD_TOKEN` 没设置，或与脚本里用的不一致 |
+| 博客里的图片显示不出来 | 开了防盗链，但「放行网站」里没有博客的域名 |
+| 下载回来的图片比上传时小、HDR 效果没了 | 域名所在区域开了 Polish（Pro 及以上套餐才有）。在该域名的「规则」里新建一条配置规则（Configuration Rule）：主机名等于图床域名，Polish 设为关闭 |
 
 ## 用脚本上传
 

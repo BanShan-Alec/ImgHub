@@ -53,26 +53,64 @@
 
 ## 部署
 
-點上方 **Deploy to Cloudflare** 按鈕，依頁面提示操作：
+準備：一個 Cloudflare 帳戶（免費版即可）和一個 GitHub 帳戶。想用自己的網域，網域需要已經託管在 Cloudflare。
 
-1. 用 GitHub 登入 Cloudflare，它會把本倉庫複製到你的 GitHub 帳號，之後推送程式碼就會自動重新部署
-2. R2 桶會自動建立，名稱可以改
-3. 填寫密鑰：
+### 第 1 步：一鍵部署
 
-   | 名稱 | 說明 |
+1. 點上方 **Deploy to Cloudflare** 按鈕，登入 Cloudflare
+2. 依提示連接 GitHub 並授權。Cloudflare 會把本倉庫複製一份到你的 GitHub 帳戶，以後在那裡改程式碼會自動重新部署
+3. 專案名稱保持 `cf-imghub` 或自己改
+4. R2 儲存桶保持新建，名稱可以改
+5. 依序填寫下面 5 個密鑰（頁面上每項都附有說明）：
+
+   | 名稱 | 填什麼 |
    |------|------|
-   | `SESSION_SECRET` | 隨機長字串，用來簽署登入工作階段；更換即讓所有人重新登入 |
-   | `UPLOAD_PASSWORD` | 上傳頁密碼 |
-   | `ADMIN_USER` / `ADMIN_PASSWORD` | 管理頁帳號與密碼 |
-   | `UPLOAD_TOKEN` | 腳本上傳用的 Token；不用也請隨便填一串隨機字元 |
+   | `SESSION_SECRET` | 一串隨機長字串，用來簽署登入工作階段 |
+   | `UPLOAD_PASSWORD` | 上傳頁的密碼 |
+   | `ADMIN_USER` | 管理頁的帳號 |
+   | `ADMIN_PASSWORD` | 管理頁的密碼 |
+   | `UPLOAD_TOKEN` | 腳本上傳用的 Token；不用腳本也請填一串隨機字元 |
 
-4. 部署完成後，在 Worker 的 **Settings → Domains & Routes** 綁定自訂網域（如 `img.example.com`）
+   隨機字串可以用密碼管理器產生，或在終端機執行 `openssl rand -hex 32`。名稱區分大小寫，值的前後不要帶空格
+6. 點頁面底部的部署按鈕，等待建置完成（約 1–2 分鐘）
 
-開啟 `https://img.example.com/` 是上傳頁，`/admin` 是管理頁。
+完成後會得到一個 `https://cf-imghub.<你的子網域>.workers.dev` 網址，已經可以打開使用。
 
-**防盜連預設關閉。**要開啟時，先在管理頁的「放行網站」把預置的範例網域換成你部落格的網域（子網域一併放行），再打開開關，否則部落格裡的圖片會被擋下。
+### 第 2 步：綁定自己的網域（建議）
 
-如果圖床同時綁了多個網域，可以在 Worker 的 **Settings → Variables and Secrets** 新增變數 `PUBLIC_BASE`（如 `https://img.example.com`），上傳後回傳的連結統一用這個網域。
+`workers.dev` 網址用不上 Cloudflare 的邊緣快取，每次都要讀 R2，正式使用請綁定網域：
+
+1. 打開 [Cloudflare 主控台](https://dash.cloudflare.com/)，左側選「Workers 和 Pages」，點進 `cf-imghub`
+2. 進入「設定」→「網域和路由」→「新增」→「自訂網域」
+3. 填寫子網域，如 `img.example.com`，確認。DNS 記錄和憑證會自動建立，幾分鐘內生效
+
+### 第 3 步：確認可以用
+
+1. 打開 `https://img.example.com/`，輸入上傳密碼，傳一張圖片，複製回傳的連結在新分頁打開
+2. 打開 `https://img.example.com/admin`，用管理帳號登入，能看到剛才那張圖
+
+**防盜鏈預設關閉。**要開啟時，先在管理頁的「放行網站」把預置的範例網域換成你部落格的網域（子網域一併放行），再打開開關，否則部落格裡的圖片會被擋下。
+
+### 以後修改密碼或設定
+
+都在「Workers 和 Pages」→ `cf-imghub` →「設定」→「變數和密碼」：
+
+- **修改**：點該項右側的編輯，填入新的「值」，再點「部署」
+- **新增**：點「新增」，類型選「**密鑰**」，填寫「變數名稱」和「值」，再點「部署」
+- 密碼類一律選「密鑰」；選「文字」也能用，但值會明文顯示在面板上
+- 修改 `SESSION_SECRET` 會讓所有人重新登入；修改某個密碼只會讓對應的登入失效
+
+選用設定：圖床綁了多個網域時，可以新增 `PUBLIC_BASE`（類型「文字」，值如 `https://img.example.com`），上傳後回傳的連結統一用這個網域。
+
+### 常見問題
+
+| 現象 | 原因與處理 |
+|------|------|
+| 登入時提示「伺服器尚未設定這種登入方式」 | 缺少 `SESSION_SECRET`，或缺少這個頁面的密碼（上傳頁要 `UPLOAD_PASSWORD`，管理頁要 `ADMIN_USER` 和 `ADMIN_PASSWORD`）。到「變數和密碼」核對名稱拼寫 |
+| 提示「密碼不正確」，但確定沒輸錯 | 檢查「值」的前後是否多了空格或換行 |
+| 腳本上傳回傳 401 | `UPLOAD_TOKEN` 沒設定，或與腳本裡用的不一致 |
+| 部落格裡的圖片顯示不出來 | 開了防盜鏈，但「放行網站」裡沒有部落格的網域 |
+| 下載回來的圖片比上傳時小、HDR 效果沒了 | 網域所在區域開了 Polish（Pro 以上方案才有）。在該網域的「規則」裡新建一條設定規則（Configuration Rule）：主機名稱等於圖床網域，Polish 設為關閉 |
 
 ## 用腳本上傳
 

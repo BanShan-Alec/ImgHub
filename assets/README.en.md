@@ -53,26 +53,64 @@ The server never touches the bytes, so a download matches the file on your phone
 
 ## Deploy
 
-Click **Deploy to Cloudflare** above and follow the steps:
+You need a Cloudflare account (the free plan is fine) and a GitHub account. To use your own domain, it must already be on Cloudflare.
 
-1. Sign in to Cloudflare with GitHub. The repository is copied to your GitHub account, and every push redeploys automatically
-2. The R2 bucket is created for you; you can rename it
-3. Fill in the secrets:
+### Step 1: one-click deploy
 
-   | Name | Purpose |
-   |------|---------|
-   | `SESSION_SECRET` | Long random string that signs login sessions; changing it signs everyone out |
-   | `UPLOAD_PASSWORD` | Upload page password |
-   | `ADMIN_USER` / `ADMIN_PASSWORD` | Admin username and password |
-   | `UPLOAD_TOKEN` | Token for script uploads; fill a random string if unused |
+1. Click the **Deploy to Cloudflare** button above and sign in to Cloudflare
+2. Connect GitHub when asked. Cloudflare copies this repository into your GitHub account; pushing changes there redeploys automatically
+3. Keep the project name `cf-imghub` or pick your own
+4. Keep the new R2 bucket (you may rename it)
+5. Fill in the five secrets (each field has a description on the page):
 
-4. After deployment, add a custom domain (e.g. `img.example.com`) under the Worker's **Settings → Domains & Routes**
+   | Name | Value |
+   |------|------|
+   | `SESSION_SECRET` | A long random string used to sign sessions |
+   | `UPLOAD_PASSWORD` | Password for the upload page |
+   | `ADMIN_USER` | Admin username |
+   | `ADMIN_PASSWORD` | Admin password |
+   | `UPLOAD_TOKEN` | Token for script uploads; fill a random string even if unused |
 
-`https://img.example.com/` is the upload page and `/admin` is the admin page.
+   Generate random strings with a password manager or `openssl rand -hex 32`. Names are case-sensitive; no spaces around values
+6. Click the deploy button at the bottom and wait for the build (1–2 minutes)
 
-**Hotlink protection is off by default.** Before turning it on, replace the sample domains under "Allowed sites" on the admin page with your blog's domain (subdomains included), or images on your blog will be blocked.
+You now have a working `https://cf-imghub.<your-subdomain>.workers.dev` address.
 
-If the Worker has several domains, add the variable `PUBLIC_BASE` (e.g. `https://img.example.com`) under **Settings → Variables and Secrets** so upload links always use that domain.
+### Step 2: add your own domain (recommended)
+
+Cloudflare's edge cache does not work on `workers.dev`, so every request reads R2. For real use, add a domain:
+
+1. In the [Cloudflare dashboard](https://dash.cloudflare.com/), open **Workers & Pages** → `cf-imghub`
+2. Go to **Settings** → **Domains & Routes** → **Add** → **Custom domain**
+3. Enter a subdomain such as `img.example.com` and confirm. DNS and the certificate are created for you within minutes
+
+### Step 3: check it works
+
+1. Open `https://img.example.com/`, enter the upload password, upload an image and open the returned link in a new tab
+2. Open `https://img.example.com/admin` and sign in with the admin account; the image should be listed
+
+**Hotlink protection is off by default.** Before turning it on, replace the sample domains under "Allowed sites" on the admin page with your blog's domain (subdomains are included), or your blog's images will be blocked.
+
+### Changing passwords or settings later
+
+Everything lives under **Workers & Pages** → `cf-imghub` → **Settings** → **Variables and Secrets**:
+
+- **Change**: edit the entry, enter the new value, then click **Deploy**
+- **Add**: click **Add**, choose type **Secret**, fill in the name and value, then click **Deploy**
+- Always use **Secret** for passwords; **Text** works too but shows the value in plain sight
+- Changing `SESSION_SECRET` signs everyone out; changing a password only signs out that role
+
+Optional: if the host has several domains, add `PUBLIC_BASE` (type **Text**, e.g. `https://img.example.com`) so returned links always use that domain.
+
+### Troubleshooting
+
+| Symptom | Cause and fix |
+|------|------|
+| Sign-in says "This sign-in method is not configured on the server" | `SESSION_SECRET` is missing, or this page's password is (`UPLOAD_PASSWORD` for uploads; `ADMIN_USER` and `ADMIN_PASSWORD` for admin). Check the spelling under Variables and Secrets |
+| "Incorrect password" although it is right | Look for stray spaces or line breaks around the value |
+| Script upload returns 401 | `UPLOAD_TOKEN` is missing or differs from the one in your script |
+| Images on your blog do not load | Hotlink protection is on but your blog is not in "Allowed sites" |
+| Downloaded images are smaller than uploaded and HDR is gone | Polish is enabled on the zone (Pro plans and up). Under the domain's **Rules**, add a Configuration Rule matching the image host's hostname with Polish off |
 
 ## Script uploads
 
