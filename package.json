@@ -1,0 +1,17 @@
+{
+  "name": "cf-imghub",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs",
+    "dev": "npm run vendor && wrangler dev",
+    "deploy": "npm run vendor && wrangler deploy"
+  },
+  "devDependencies": {
+    "@jsquash/avif": "^2.1.1",
+    "@jsquash/webp": "^1.5.0",
+    "wrangler": "^4.165.0"
+  }
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#fff8f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a110e" media="(prefers-color-scheme: dark)">
+<title>CF-ImgHub</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/admin.js"></script>
+</head>
+<body class="locked" data-title="adminTitle">
+<header class="topbar">
+  <a class="brand" href="/admin"><i data-icon="logo" class="mark"></i><span class="name">CF-ImgHub</span><span class="tag" data-i18n="tagAdmin"></span></a>
+  <button class="btn icon state" id="refresh" data-i18n-tip="refresh"><i data-icon="refresh"></i></button>
+  <button class="btn icon state" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
+  <a class="btn icon state" href="/" data-i18n-tip="toUpload"><i data-icon="upload"></i></a>
+  <button class="btn icon state" id="logout" data-i18n-tip="logout"><i data-icon="logout"></i></button>
+</header>
+
+<main class="page">
+  <section class="stats">
+    <div class="stat s1"><span class="morph deco" data-shape="cookie9"></span><span class="num" id="statCount">–</span><span class="label" data-i18n="files"></span></div>
+    <div class="stat s2"><span class="morph deco" data-shape="clover4"></span><span class="num" id="statBytes">–</span><span class="label" data-i18n="totalSize"></span></div>
+    <div class="stat s3"><span class="morph deco" data-shape="burst12"></span><span class="num" id="statShown">–</span><span class="label" data-i18n="loadedN"></span></div>
+    <div class="stat s4" data-i18n-tip="hotlinkNote">
+      <span class="morph deco" data-shape="pentagon"></span>
+      <button class="toggle" id="hotlink" type="button" role="switch" aria-checked="false" data-i18n-tip="hotlink"><span class="thumb"></span></button>
+      <span class="num" id="hotlinkState">–</span>
+      <span class="label"><span data-i18n="hotlink"></span> · <span id="exemptCount"></span></span>
+    </div>
+  </section>
+
+  <div class="toolrow">
+    <label class="search"><i data-icon="search"></i><input id="q" type="search" data-i18n-ph="search" autocomplete="off" spellcheck="false"></label>
+    <div class="filters" id="filters">
+      <button data-v="all" data-i18n="fAll"></button>
+      <button data-v="image" data-i18n="fImage"></button>
+      <button data-v="video" data-i18n="fVideo"></button>
+      <button data-v="other" data-i18n="fOther"></button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden><span class="morph" data-shape="clover4"><i data-icon="image"></i></span><span id="emptyText"></span></div>
+  <div class="more" id="more"></div>
+</main>
+
+<div class="ftb" id="ftb" role="toolbar">
+  <button class="btn icon state" id="selClear" data-i18n-tip="clearSel"><i data-icon="close"></i></button>
+  <span class="count" id="selCount"></span>
+  <span class="sep"></span>
+  <button class="btn icon state" id="selAll" data-i18n-tip="selectAll"><i data-icon="selectAll"></i></button>
+  <button class="btn tonal state" id="selCopy"><i data-icon="link"></i><span class="lbl" data-i18n="copyLinks"></span></button>
+  <button class="btn danger state" id="selDelete"><i data-icon="delete"></i><span class="lbl" data-i18n="del"></span></button>
+</div>
+
+<dialog class="dlg detail" id="detail">
+  <div class="preview"></div>
+  <button class="btn icon close state" value="close" data-i18n-tip="cancel"><i data-icon="close"></i></button>
+  <div class="info">
+    <h3 class="title-l item-name"></h3>
+    <dl>
+      <dt data-i18n="link"></dt><dd class="mono" data-f="url"></dd>
+      <dt data-i18n="type"></dt><dd data-f="type"></dd>
+      <dt data-i18n="size"></dt><dd data-f="size"></dd>
+      <dt data-i18n="uploaded"></dt><dd data-f="uploaded"></dd>
+      <dt data-i18n="key"></dt><dd class="mono" data-f="key"></dd>
+      <dt class="orig" data-i18n="origName"></dt><dd class="orig" data-f="name"></dd>
+    </dl>
+    <div class="setting">
+      <span><b data-i18n="allowHotlink"></b><small data-i18n="allowHotlinkNote"></small></span>
+      <button class="toggle" data-exempt type="button" role="switch" aria-checked="false" data-i18n-tip="allowHotlink"><span class="thumb"></span></button>
+    </div>
+    <div class="row">
+      <button class="btn tonal sm state" data-copy="url"><i data-icon="link" class="sm"></i><span data-i18n="copyUrl"></span></button>
+      <button class="btn tonal sm state" data-copy="md"><i data-icon="md" class="sm"></i>Markdown</button>
+      <button class="btn tonal sm state" data-copy="html"><i data-icon="code" class="sm"></i>HTML</button>
+      <span class="grow"></span>
+      <a class="btn sm state" data-open target="_blank" rel="noopener"><i data-icon="open" class="sm"></i><span data-i18n="open"></span></a>
+      <button class="btn danger sm state" data-del><i data-icon="delete" class="sm"></i><span data-i18n="del"></span></button>
+    </div>
+  </div>
+</dialog>
+</body>
+</html>

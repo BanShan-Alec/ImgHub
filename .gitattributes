@@ -1,0 +1,4 @@
+# 仓库内统一 LF（Windows 的 core.autocrlf=true 也不改写）
+* text=auto eol=lf
+*.png binary
+*.ico binary

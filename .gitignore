@@ -1,0 +1,34 @@
+# Agent 交接文档与记忆：永不推送
+AGENTS.md
+MEMORY.md
+memory/
+
+# 凭据与本地配置
+.secrets/
+.dev.vars
+.env
+.env.*
+
+# 用户样张与转换产物
+samples/
+*.heic
+*.HEIC
+
+# Node / Wrangler
+node_modules/
+.wrangler/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 构建产物：npm run vendor 从 node_modules 复制
+public/vendor/
+
+# 原型与实验脚本：只留本地
+prototype/

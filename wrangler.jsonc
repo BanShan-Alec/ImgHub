@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cf-imghub",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+
+  // 上传页等静态文件；/file/* 与 /api/* 先进 Worker
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/file/*", "/api/*"]
+  },
+
+  "r2_buckets": [
+    { "binding": "R2_MAIN", "bucket_name": "cf-imghub" }
+  ],
+
+  // 登录限速：每个 IP 每分钟 5 次（按机房计数，足以挡住暴力猜密码）
+  "ratelimits": [
+    { "name": "LOGIN_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
+  ],
+
+  "vars": {
+    // 存储路由表：按 key 开头的 13 位毫秒时间戳选桶，from 为起始时间戳（含）。
+    // 新上传写入最后一项。日后接第二个账户时在末尾追加一项即可。
+    "STORES": [{ "binding": "R2_MAIN", "from": 0 }],
+    // R2 找不到时回源的旧图床（取回后写入 R2，即访问时自动迁移）；留空则关闭
+    "LEGACY_ORIGIN": "https://cloudflare-imgbed-djt.pages.dev",
+    // 只有早于此毫秒时间戳的「时间戳_文件名」key 才回源；切换 img.awads.cc 时填切换时刻，0 = 不限
+    "LEGACY_BEFORE": 0,
+    // 返回给上传者的链接前缀；留空则用当前请求的域名
+    "PUBLIC_BASE": ""
+  }
+  // 密钥（wrangler secret put <名称>；本地写在 .dev.vars）：
+  //   SESSION_SECRET   会话签名密钥，随机长字符串；轮换即让所有人重新登录
+  //   UPLOAD_PASSWORD  上传页密码
+  //   ADMIN_USER / ADMIN_PASSWORD  后台管理账号
+  //   UPLOAD_TOKEN     可选，本机脚本用 Authorization: Bearer 上传
+}

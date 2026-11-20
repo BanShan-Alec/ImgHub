@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#fff8f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a110e" media="(prefers-color-scheme: dark)">
+<title>CF-ImgHub</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/app.js"></script>
+</head>
+<body class="locked" data-title="title">
+<header class="topbar">
+  <a class="brand" href="/"><i data-icon="logo" class="mark"></i><span class="name">CF-ImgHub</span></a>
+  <button class="btn icon state" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
+  <a class="btn icon state" href="/admin" data-i18n-tip="toAdmin"><i data-icon="dashboard"></i></a>
+  <button class="btn icon state" id="logout" data-i18n-tip="logout"><i data-icon="logout"></i></button>
+</header>
+
+<main class="page">
+  <div class="upload-grid">
+    <div class="primary-col">
+      <label class="drop" id="drop">
+        <input id="files" type="file" multiple hidden>
+        <span class="morph emblem" id="dropEmblem"><i data-icon="upload"></i></span>
+        <span class="display" data-i18n="dropTitle"></span>
+        <span class="hint title-m" data-i18n="drop"></span>
+        <span class="keys">
+          <span class="chip" data-i18n="kDrag"></span>
+          <span class="chip" data-i18n="kPaste"></span>
+          <span class="chip" data-i18n="kMulti"></span>
+        </span>
+        <span class="btn filled lg"><i data-icon="image"></i><span data-i18n="pick"></span></span>
+      </label>
+
+      <div id="queueSec" hidden>
+        <div class="sec-head"><h2 class="title-l" data-i18n="queue"></h2><span class="count" id="queueCount">0</span></div>
+        <ul id="queue" class="seg-list"></ul>
+      </div>
+
+      <div class="sec-head">
+        <h2 class="title-l" data-i18n="history"></h2>
+        <span class="label" data-i18n="historyNote"></span>
+        <button id="clearHistory" class="btn sm state"><i data-icon="sweep" class="sm"></i><span data-i18n="clear"></span></button>
+      </div>
+      <ul id="history" class="seg-list"></ul>
+      <div class="empty" id="historyEmpty" hidden>
+        <span class="morph" data-shape="clover4"><i data-icon="history"></i></span>
+        <span data-i18n="emptyHistory"></span>
+      </div>
+    </div>
+
+    <aside class="side">
+      <section class="card" id="opts">
+        <div class="sec-head"><i data-icon="tune"></i><h2 class="title-m" data-i18n="settings"></h2></div>
+        <div class="opt">
+          <span class="label" data-i18n="mode"></span>
+          <div class="group" id="mode">
+            <button data-v="auto" data-i18n="modeAuto"></button>
+            <button data-v="custom" data-i18n="modeCustom"></button>
+            <button data-v="original" data-i18n="modeOriginal"></button>
+          </div>
+        </div>
+        <div class="opt">
+          <span class="label" data-i18n="naming"></span>
+          <div class="group" id="naming">
+            <button data-v="std" data-i18n="nStd"></button>
+            <button data-v="original" data-i18n="nOriginal"></button>
+          </div>
+          <span class="hint-s" id="namingHint" data-i18n="namingHint"></span>
+        </div>
+        <div class="opt" id="formatField">
+          <span class="label" data-i18n="format"></span>
+          <div class="group" id="format">
+            <button data-v="avif">AVIF</button>
+            <button data-v="webp">WebP</button>
+            <button data-v="jpeg">JPEG</button>
+            <button data-v="png">PNG</button>
+          </div>
+        </div>
+        <div class="opt" id="qualityField">
+          <span class="label" data-i18n="quality"></span>
+          <div class="group" id="quality">
+            <button data-v="high" data-i18n="qHigh"></button>
+            <button data-v="balanced" data-i18n="qBalanced"></button>
+            <button data-v="small" data-i18n="qSmall"></button>
+          </div>
+        </div>
+        <div class="opt" id="edgeField">
+          <span class="label" data-i18n="maxEdge"></span>
+          <div class="group dense" id="edge">
+            <button data-v="0" data-i18n="noResize"></button>
+            <button data-v="3840">3840</button>
+            <button data-v="2560">2560</button>
+            <button data-v="2048">2048</button>
+            <button data-v="1280">1280</button>
+          </div>
+        </div>
+        <div class="note" data-i18n="autoNote"></div>
+      </section>
+    </aside>
+  </div>
+</main>
+</body>
+</html>
