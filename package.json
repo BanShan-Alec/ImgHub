@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "vendor": "node scripts/vendor.mjs",
+    "build": "node scripts/vendor.mjs",
     "dev": "npm run vendor && wrangler dev",
     "deploy": "npm run vendor && wrangler deploy"
   },
@@ -13,5 +14,27 @@
     "@jsquash/avif": "^2.1.1",
     "@jsquash/webp": "^1.5.0",
     "wrangler": "^4.165.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "R2_MAIN": {
+        "description": "存放图片的 R2 桶 / R2 bucket for images."
+      },
+      "SESSION_SECRET": {
+        "description": "会话签名密钥，填一串随机长字符串（如 `openssl rand -hex 32`）；更换即让所有人重新登录。 / Random long string for signing sessions."
+      },
+      "UPLOAD_PASSWORD": {
+        "description": "上传页密码。 / Password for the upload page."
+      },
+      "ADMIN_USER": {
+        "description": "管理页账号。 / Admin username."
+      },
+      "ADMIN_PASSWORD": {
+        "description": "管理页密码。 / Admin password."
+      },
+      "UPLOAD_TOKEN": {
+        "description": "脚本上传用的 Bearer Token；不用脚本也请填一串随机字符串。 / Bearer token for script uploads; fill a random string if unused."
+      }
+    }
   }
 }

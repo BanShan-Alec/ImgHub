@@ -23,7 +23,7 @@ document.addEventListener('langchange', () => {
 });
 
 // ---------- 防盗链设置 ----------
-let settings = { hotlink: true, exempt: [] };
+let settings = { hotlink: false, allow: [], exempt: [] };
 let exempt = new Set();
 const setToggle = (b, on) => b.setAttribute('aria-checked', String(on));
 function applySettings(s) {
@@ -35,7 +35,58 @@ function applySettings(s) {
   $('#exemptCount').textContent = t('exemptN', { n: exempt.size });
   for (const el of document.querySelectorAll('.tile')) el.classList.toggle('exempt', exempt.has(el.dataset.key));
   if (current) setToggle($('[data-exempt]', dlg), exempt.has(current.key));
+  renderSites();
 }
+
+// 放行网站：输入胶囊（chip），× 移除；保存整份名单，服务端负责规范化与校验
+function renderSites() {
+  const box = $('#sites');
+  box.replaceChildren();
+  if (!settings.allow.length) {
+    const p = document.createElement('span');
+    p.className = 'chips-empty';
+    p.textContent = t('sitesEmpty');
+    box.append(p);
+  }
+  for (const site of settings.allow) {
+    const c = document.createElement('span');
+    c.className = 'chip';
+    const name = document.createElement('span');
+    name.textContent = site;
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'chip-x state';
+    x.title = x.ariaLabel = t('removeSite', { site });
+    x.append(icon('close', 'sm'));
+    x.onclick = () => saveSites(settings.allow.filter((d) => d !== site), x);
+    c.append(name, x);
+    box.append(c);
+  }
+}
+async function saveSites(allow, btn) {
+  if (saving) return false;
+  saving = true;
+  btn.setAttribute('aria-busy', 'true');
+  const r = await api('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allow }) });
+  saving = false;
+  btn.removeAttribute('aria-busy');
+  if (!r.ok) {
+    if (r.status === 401) return reauth();
+    snack(r.body?.error === 'bad_site' ? t('e_bad_site', { site: r.body.site }) : errText(r), { error: true });
+    return false;
+  }
+  applySettings(r.body);
+  snack(t('saved'));
+  return true;
+}
+$('#siteForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const input = $('#siteInput');
+  // 允许一次贴多个：空格、逗号、换行分隔
+  const add = input.value.split(/[\s,，、]+/).filter(Boolean);
+  if (!add.length) return input.focus();
+  if (await saveSites([...settings.allow, ...add], $('#siteForm button'))) input.value = '';
+};
 // 整张卡片 / 整行都可以点（开关本身的点击会冒泡上来，所以开关上不另外绑事件）；保存期间忽略重复点击
 let saving = false;
 async function saveSetting(path, body, btn) {

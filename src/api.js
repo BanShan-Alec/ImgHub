@@ -2,7 +2,7 @@
 // 错误只返回代码（error 字段），由前端按语言翻译
 import { pickContentType } from './mime.js';
 import { allStores, BRAND, keyTime, writeStore } from './stores.js';
-import { getSettings, publicSettings, saveSettings } from './settings.js';
+import { MAX_SITES, getSettings, normSite, publicSettings, saveSettings } from './settings.js';
 import { hasRole, identify, login, logoutCookie, sameOrigin } from './auth.js';
 
 // 只对 Bearer 调用开放跨域；Cookie 会话是 SameSite=Strict，跨域请求本来就带不上
@@ -52,10 +52,23 @@ export async function handleApi(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return stats(env);
   if (path === '/api/settings' && method === 'GET') return json(publicSettings(await getSettings(env)));
   if (path === '/api/settings' && method === 'POST') {
+    // {hotlink?: boolean, allow?: string[]}，至少给一项
     const body = await request.json().catch(() => null);
-    if (typeof body?.hotlink !== 'boolean') return json({ error: 'bad_request' }, 400);
+    const next = {};
+    if ('hotlink' in (body ?? {})) {
+      if (typeof body.hotlink !== 'boolean') return json({ error: 'bad_request' }, 400);
+      next.hotlink = body.hotlink;
+    }
+    if ('allow' in (body ?? {})) {
+      if (!Array.isArray(body.allow) || body.allow.length > MAX_SITES) return json({ error: 'bad_request' }, 400);
+      const sites = body.allow.map(normSite);
+      const bad = body.allow.find((_, i) => !sites[i]);
+      if (bad !== undefined) return json({ error: 'bad_site', site: String(bad) }, 400);
+      next.allow = sites;
+    }
+    if (!Object.keys(next).length) return json({ error: 'bad_request' }, 400);
     const cur = await getSettings(env, { fresh: true });
-    return json(await saveSettings(env, { ...cur, hotlink: body.hotlink }));
+    return json(publicSettings(await saveSettings(env, { ...cur, ...next })));
   }
   // POST /api/exempt {keys, on}：单张防盗链开关。on=true 表示这几张允许外链
   if (path === '/api/exempt' && method === 'POST') {

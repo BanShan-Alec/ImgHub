@@ -8,12 +8,11 @@ const LONG_CACHE = 'public, max-age=31536000, immutable, no-transform';
 const MISS_CACHE = 'public, max-age=60';
 const CACHE_PUT_LIMIT = 512 * 1024 * 1024; // Cache API 单个对象上限
 const LEGACY_LIMIT = 100 * 1024 * 1024; // 回源迁移时整个读进内存，超过就只转发不迁移
-// 防盗链放行的站点（含所有子域名）。图床自己的域名另外放行。
-// 后半是网页版 RSS 阅读器：它们会带自己域名的 Referer（App 版通常不带，本来就放行）
-const ALLOWED_SITES = [
-  'awads.cc', 'awavenue.top',
+// 防盗链内建放行的网页版 RSS 阅读器（含所有子域名）：它们会带自己域名的 Referer（App 版通常不带，本来就放行）。
+// 博客等其他网站由管理页填写（设置里的 allow）；图床自己的域名另外放行
+const RSS_READERS = [
   'feedly.com', 'inoreader.com', 'innoreader.com', 'newsblur.com', 'theoldreader.com', 'feedbin.com', 'bazqux.com',
-  'follow.is', 'folo.is', 'feeder.co', 'netvibes.com',
+  'follow.is', 'folo.is', 'feeder.co', 'netvibes.com', 'qireader.com', 'commafeed.com', 'readwise.io', 'feedspot.com',
 ];
 
 export async function serveFile(request, env, ctx, url) {
@@ -30,7 +29,7 @@ export async function serveFile(request, env, ctx, url) {
 
   // 防盗链放在查缓存之前：缓存里的回应不分来源，判断只看 Referer 和设置（设置在内存里缓存，不额外耗时）
   const settings = await getSettings(env);
-  if (settings.hotlink && !settings.exemptSet.has(key) && !refererAllowed(request, url, env)) {
+  if (settings.hotlink && !settings.exemptSet.has(key) && !refererAllowed(request, url, env, settings.allow)) {
     return plain(403, 'Hotlinking not allowed');
   }
 
@@ -147,7 +146,7 @@ function objectHeaders(obj, key) {
 }
 
 // 没有 Referer（直接打开、RSS 阅读器、大部分 App）放行；来自博客、图床自身的放行
-function refererAllowed(request, url, env) {
+function refererAllowed(request, url, env, allow) {
   const ref = request.headers.get('Referer');
   if (!ref) return true;
   let host;
@@ -158,7 +157,8 @@ function refererAllowed(request, url, env) {
   }
   if (host === url.hostname) return true;
   if (env.PUBLIC_BASE && host === new URL(env.PUBLIC_BASE).hostname) return true;
-  return ALLOWED_SITES.some((d) => host === d || host.endsWith(`.${d}`));
+  const match = (d) => host === d || host.endsWith(`.${d}`);
+  return allow.some(match) || RSS_READERS.some(match);
 }
 
 function rangeOf(range, size) {

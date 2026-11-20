@@ -1,0 +1,5 @@
+SESSION_SECRET=change-me-to-a-long-random-string
+UPLOAD_PASSWORD=change-me
+ADMIN_USER=admin
+ADMIN_PASSWORD=change-me
+UPLOAD_TOKEN=change-me

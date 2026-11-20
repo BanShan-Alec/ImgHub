@@ -1,72 +1,78 @@
-# CF-ImgHub
+<p align="center">
+  <img src="assets/logo.svg" width="112" alt="CF-ImgHub">
+</p>
 
-**简体中文** · [繁體中文](assets/README.zh-Hant.md) · [English](assets/README.en.md)
+<h1 align="center">CF-ImgHub</h1>
 
-跑在 Cloudflare Workers + R2 上的自建图床，小而快。图片**原样存取**，服务端不做任何压缩或转码，HDR 增益图（Ultra HDR）和实况照片（Motion Photo）都能完整保留。
+<p align="center">
+  为个人博客打造的图床，跑在 Cloudflare Workers + R2 上。<br>
+  快，在浏览器里压缩，原样保存实况照片与 HDR。
+</p>
 
-## 特点
+<p align="center">
+  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/TG-Twilight/CF-ImgHub"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"></a>
+</p>
 
-- **快**：读路径不查数据库，Cache API → R2 直接返回；支持 `Range`/206、`ETag`/304，回应带 `immutable, no-transform`，Cloudflare Polish 等功能不会改动图片
-- **原样保存**：Worker 只搬字节。需要压缩时在**浏览器里**转码（AVIF / WebP / JPEG / PNG，三档质量，可限制最长边），ico、svg、gif、动图、HDR、实况照片、视频会自动原样上传
-- **防盗链**：全局开关 + 单张图片开关，默认开启；无 Referer 的请求（直接打开、RSS App）与放行名单内的站点不受限
-- **两种命名**：规范命名 `ImgHub-20261121-153045-k7q2.avif`（上传时间 + 随机码），或保持原文件名 `<毫秒时间戳>_<原名>`
-- **旧图床平滑迁移**：R2 里找不到的旧链接会回源旧图床，取回后写入 R2（访问时迁移）
-- **上传页与管理页**：Material 3 Expressive 风格界面，亮/暗色，简体中文 / 繁體中文 / English
-- **两种角色**：上传（只要密码，可撤回 24 小时内的上传）与管理（账号 + 密码，浏览、搜索、预览、批量删除、防盗链设置）；脚本可用 Bearer Token 上传
+<p align="center">
+  <b>简体中文</b> · <a href="assets/README.zh-Hant.md">繁體中文</a> · <a href="assets/README.en.md">English</a>
+</p>
 
-## 架构
+## 为什么用它
 
-```text
-GET/HEAD /file/<key>   防盗链判断 → Cache API → R2 → 回源旧图床（可选）
-/api/*                 登录、上传、删除、列表、统计、设置
-其余路径               静态资源 public/（上传页 /、管理页 /admin）
-```
+### 快
 
-| 路径 | 说明 |
-|------|------|
-| `src/serve.js` | 读文件、缓存、Range、防盗链、回源迁移 |
-| `src/api.js` | 上传、删除、列表、统计、设置 API |
-| `src/auth.js` | 无状态签名 Cookie 会话、登录限速 |
-| `src/stores.js` | 按 key 里的上传时间选桶（预留多桶分流） |
-| `src/settings.js` | 运行时设置（存于 R2 的 `.imghub/settings.json`） |
-| `public/` | 上传页、管理页、浏览器端转码 Worker |
+图片直接从 Cloudflare 边缘返回：先查边缘缓存，没命中就读同一网络里的 R2，**读取路径上没有数据库，也不绕道第三方存储**。
+
+回应支持 `Range`（视频可拖动）、`ETag`/304，并带 `Cache-Control: immutable, no-transform`，浏览器缓存一年；Cloudflare Polish 等优化也不会再改动图片。
+
+### 在浏览器里压缩
+
+上传前在你自己的浏览器里转码，服务器只存最终的字节：
+
+- 自动模式转 **AVIF**，也可以指定 WebP / JPEG / PNG，或完全不压缩
+- 三档质量，可限制最长边；多张图并行处理（Web Worker）
+- 压完反而变大时自动用原图；本来就是 AVIF / WebP / JXL 的图不重复压缩
+
+### 实况照片与 HDR 完整保留
+
+手机拍的**实况照片**（Motion Photo，一个 JPEG 里带着一段视频）和 **Ultra HDR** 照片（JPEG + 增益图），一经压缩，视频和 HDR 信息就会丢失。CF-ImgHub 上传时会**逐张检查文件内容**，认出以下格式就跳过压缩、原样上传：
+
+- 实况照片：Google Motion Photo、OPPO / 一加 / realme 的 O Live
+- HDR：Ultra HDR / ISO 21496-1 增益图 JPEG，带增益图的 HEIF / AVIF
+- 动图（GIF、APNG、动态 WebP / AVIF）、SVG、ICO、视频
+
+服务器从不改动文件字节，所以下载回来和手机里的原档一模一样。Ultra HDR 图片在支持 HDR 的屏幕上用 Chrome / Edge 打开会自动显示高亮。
+
+## 其他功能
+
+- **上传页与管理页**：Material 3 Expressive 界面，亮 / 暗色，简体中文 / 繁體中文 / English
+- **两种身份**：上传者只需密码，可撤回 24 小时内的上传；管理员可浏览、搜索、预览、批量删除和设置防盗链
+- **防盗链**：在管理页一键开启，放行的网站（含子域名）在管理页填写，也可以单张图片单独放行。没有 Referer 的请求（直接打开、RSS App）和常见网页版 RSS 阅读器不受限
+- **易读的文件名**：默认命名为 `ImgHub-20261121-153045-k7q2.avif`（上传时间 + 随机码），也可以保持原文件名
+- **脚本上传**：用 Bearer Token 调用 `/api/upload`，方便接入写作流程
 
 ## 部署
 
-需要 Node.js 22.12+ 和一个 Cloudflare 账户。
+点上方 **Deploy to Cloudflare** 按钮，按页面提示操作：
 
-```bash
-npm install
-npx wrangler r2 bucket create cf-imghub
+1. 用 GitHub 登录 Cloudflare，它会把本仓库复制到你的 GitHub 账户，之后推送代码就会自动重新部署
+2. R2 桶会自动创建，名称可以改
+3. 填写密钥：
 
-# 设置密钥（会提示输入值）
-npx wrangler secret put SESSION_SECRET    # 随机长字符串，轮换即让所有人重新登录
-npx wrangler secret put UPLOAD_PASSWORD   # 上传页密码
-npx wrangler secret put ADMIN_USER        # 管理账号
-npx wrangler secret put ADMIN_PASSWORD    # 管理密码
-npx wrangler secret put UPLOAD_TOKEN      # 可选：脚本上传用的 Bearer Token
+   | 名称 | 说明 |
+   |------|------|
+   | `SESSION_SECRET` | 随机长字符串，用来签名登录会话；更换即让所有人重新登录 |
+   | `UPLOAD_PASSWORD` | 上传页密码 |
+   | `ADMIN_USER` / `ADMIN_PASSWORD` | 管理页账号与密码 |
+   | `UPLOAD_TOKEN` | 脚本上传用的 Token；不用也请随便填一串随机字符 |
 
-npm run deploy
-```
+4. 部署完成后，在 Worker 的 **Settings → Domains & Routes** 绑定自定义域名（如 `img.example.com`）
 
-然后在 Cloudflare 面板给 Worker 绑定自定义域名。`wrangler.jsonc` 的 `vars`：
+打开 `https://img.example.com/` 是上传页，`/admin` 是管理页。
 
-| 变量 | 说明 |
-|------|------|
-| `STORES` | 存储路由表，按上传时间选桶；新上传写最后一项 |
-| `LEGACY_ORIGIN` | 旧图床地址，R2 找不到时回源；留空关闭 |
-| `LEGACY_BEFORE` | 只有早于此毫秒时间戳的旧格式 key 才回源；0 = 不限 |
-| `PUBLIC_BASE` | 返回给上传者的链接前缀；留空用当前域名 |
+**防盗链默认关闭。**要开启时，先在管理页的「放行网站」把预置的示例域名换成你博客的域名（子域名一并放行），再打开开关，否则博客里的图片会被拦下。
 
-## 本地开发
-
-在项目根目录建 `.dev.vars`，写入上面 5 个密钥（`KEY=value` 每行一个），然后：
-
-```bash
-npm run dev
-```
-
-`npm run dev` / `npm run deploy` 会先执行 `npm run vendor`，把 jSquash 编码器从 `node_modules` 复制到 `public/vendor/`。
+如果图床同时绑了多个域名，可以在 Worker 的 **Settings → Variables and Secrets** 添加变量 `PUBLIC_BASE`（如 `https://img.example.com`），上传后返回的链接统一用这个域名。
 
 ## 用脚本上传
 
@@ -75,7 +81,15 @@ curl -H "Authorization: Bearer $UPLOAD_TOKEN" \
      -H "Content-Type: image/avif" \
      --data-binary @photo.avif \
      "https://img.example.com/api/upload?name=photo.avif"
-# 加 &naming=original 保持原文件名
+# 返回 JSON，其中 url 为图片链接；加 &naming=original 保持原文件名
+```
+
+## 本地开发
+
+```bash
+npm install
+cp .dev.vars.example .dev.vars   # 填入密钥
+npm run dev
 ```
 
 ## 授权
