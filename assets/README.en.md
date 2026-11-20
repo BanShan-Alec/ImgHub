@@ -23,8 +23,6 @@
 
 Images are served straight from Cloudflare's edge: edge cache first, then R2 on the same network. **No database and no third-party storage on the read path.**
 
-Responses support `Range` (seekable video) and `ETag`/304, and carry `Cache-Control: immutable, no-transform`, so browsers cache them for a year and Cloudflare Polish and similar optimizations leave them alone.
-
 ### Compression in the browser
 
 Images are transcoded in your own browser before upload; the server only stores the final bytes:
@@ -52,6 +50,9 @@ The server never touches the bytes, so a download matches the file on your phone
 - **Script uploads**: call `/api/upload` with a Bearer token from your writing workflow
 
 ## Deploy
+
+<details>
+<summary>Show deployment steps</summary>
 
 You need a Cloudflare account (the free plan is fine) and a GitHub account. To use your own domain, it must already be on Cloudflare.
 
@@ -111,6 +112,8 @@ Optional: if the host has several domains, add `PUBLIC_BASE` (type **Text**, e.g
 | Script upload returns 401 | `UPLOAD_TOKEN` is missing or differs from the one in your script |
 | Images on your blog do not load | Hotlink protection is on but your blog is not in "Allowed sites" |
 | Downloaded images are smaller than uploaded and HDR is gone | Polish is enabled on the zone (Pro plans and up). Under the domain's **Rules**, add a Configuration Rule matching the image host's hostname with Polish off |
+
+</details>
 
 ## Script uploads
 

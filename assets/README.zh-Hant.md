@@ -23,8 +23,6 @@
 
 圖片直接從 Cloudflare 邊緣回傳：先查邊緣快取，沒命中就讀同一網路裡的 R2，**讀取路徑上沒有資料庫，也不繞道第三方儲存**。
 
-回應支援 `Range`（影片可拖曳）、`ETag`/304，並帶 `Cache-Control: immutable, no-transform`，瀏覽器快取一年；Cloudflare Polish 等最佳化也不會再改動圖片。
-
 ### 在瀏覽器裡壓縮
 
 上傳前在你自己的瀏覽器裡轉檔，伺服器只存最終的位元組：
@@ -52,6 +50,9 @@
 - **腳本上傳**：用 Bearer Token 呼叫 `/api/upload`，方便接入寫作流程
 
 ## 部署
+
+<details>
+<summary>展開部署步驟</summary>
 
 準備：一個 Cloudflare 帳戶（免費版即可）和一個 GitHub 帳戶。想用自己的網域，網域需要已經託管在 Cloudflare。
 
@@ -111,6 +112,8 @@
 | 腳本上傳回傳 401 | `UPLOAD_TOKEN` 沒設定，或與腳本裡用的不一致 |
 | 部落格裡的圖片顯示不出來 | 開了防盜鏈，但「放行網站」裡沒有部落格的網域 |
 | 下載回來的圖片比上傳時小、HDR 效果沒了 | 網域所在區域開了 Polish（Pro 以上方案才有）。在該網域的「規則」裡新建一條設定規則（Configuration Rule）：主機名稱等於圖床網域，Polish 設為關閉 |
+
+</details>
 
 ## 用腳本上傳
 

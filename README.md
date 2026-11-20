@@ -23,8 +23,6 @@
 
 图片直接从 Cloudflare 边缘返回：先查边缘缓存，没命中就读同一网络里的 R2，**读取路径上没有数据库，也不绕道第三方存储**。
 
-回应支持 `Range`（视频可拖动）、`ETag`/304，并带 `Cache-Control: immutable, no-transform`，浏览器缓存一年；Cloudflare Polish 等优化也不会再改动图片。
-
 ### 在浏览器里压缩
 
 上传前在你自己的浏览器里转码，服务器只存最终的字节：
@@ -52,6 +50,9 @@
 - **脚本上传**：用 Bearer Token 调用 `/api/upload`，方便接入写作流程
 
 ## 部署
+
+<details>
+<summary>展开部署步骤</summary>
 
 准备：一个 Cloudflare 账户（免费版即可）和一个 GitHub 账户。想用自己的域名，域名需要已经托管在 Cloudflare。
 
@@ -111,6 +112,8 @@
 | 脚本上传返回 401 | `UPLOAD_TOKEN` 没设置，或与脚本里用的不一致 |
 | 博客里的图片显示不出来 | 开了防盗链，但「放行网站」里没有博客的域名 |
 | 下载回来的图片比上传时小、HDR 效果没了 | 域名所在区域开了 Polish（Pro 及以上套餐才有）。在该域名的「规则」里新建一条配置规则（Configuration Rule）：主机名等于图床域名，Polish 设为关闭 |
+
+</details>
 
 ## 用脚本上传
 
