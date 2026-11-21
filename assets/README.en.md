@@ -6,7 +6,7 @@
 
 <p align="center">
   An image host for personal blogs, running on Cloudflare Workers + R2.<br>
-  Fast, compresses in your browser, and keeps Motion Photos and HDR intact.
+  Fast, compresses in your browser, and never loses Motion Photos or HDR.
 </p>
 
 <p align="center">
@@ -33,15 +33,25 @@ Images are transcoded in your own browser before upload; the server only stores 
 - Three quality levels and an optional max edge; multiple images are processed in parallel (Web Workers)
 - Keeps the original if the result is larger; images that are already AVIF / WebP / JXL are not recompressed
 
-### Motion Photos and HDR, kept intact
+### Motion Photos and HDR, never lost
 
-Compression strips the video from a **Motion Photo** (a JPEG with a short clip inside) and the gain map from an **Ultra HDR** photo. CF-ImgHub **inspects each file's contents** before upload and sends these as-is:
+Ordinary compressors strip the video from a **Motion Photo** (a JPEG with a short clip inside) and the gain map from an **Ultra HDR** photo. CF-ImgHub **inspects each file's contents** before upload:
 
-- Motion Photos: Google Motion Photo, OPPO / OnePlus / realme O Live
-- HDR: Ultra HDR / ISO 21496-1 gain-map JPEG, HEIF / AVIF with a gain map
-- Animations (GIF, APNG, animated WebP / AVIF), SVG, ICO, video
+- **Motion Photos** (Google Motion Photo, OPPO / OnePlus / realme O Live, including ones saved from WeChat) are taken apart in the browser, processed piece by piece and reassembled in the original layout, so phone galleries still treat them as Live:
 
-The server never touches the bytes, so a download matches the file on your phone exactly. Ultra HDR images light up in Chrome / Edge on HDR displays.
+  | Level | What it does |
+  |-------|--------------|
+  | As-is | Untouched |
+  | Slim | Strips phone-private data; no quality loss |
+  | **Standard** (default) | Also recompresses the still; HDR and the clip are kept, about half the size |
+  | Compact | Also converts the clip to SDR (the still stays HDR) |
+  | Max | Also drops HDR and shrinks the still to the longest edge |
+
+  Parts that are already compressed (such as clips saved from WeChat) are skipped. Processed Motion Photos keep their EXIF, including location
+- **HDR photos** are uploaded as-is: Ultra HDR / ISO 21496-1 gain-map JPEG, HEIF / AVIF with a gain map
+- Animations (GIF, APNG, animated WebP / AVIF), SVG, ICO and video are uploaded as-is too
+
+The server never touches the bytes, so anything uploaded as-is downloads exactly as it was on your phone. Ultra HDR images light up in Chrome / Edge on HDR displays.
 
 ## More features
 

@@ -36,5 +36,8 @@
         "description": "脚本上传用的 Bearer Token；不用脚本也请填一串随机字符串。 / Bearer token for script uploads; fill a random string if unused."
       }
     }
+  },
+  "dependencies": {
+    "mediabunny": "^1.66.2"
   }
 }

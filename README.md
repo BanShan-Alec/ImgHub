@@ -6,7 +6,7 @@
 
 <p align="center">
   为个人博客打造的图床，跑在 Cloudflare Workers + R2 上。<br>
-  快，在浏览器里压缩，原样保存实况照片与 HDR。
+  快，在浏览器里压缩，不丢实况照片与 HDR。
 </p>
 
 <p align="center">
@@ -33,15 +33,25 @@
 - 三档质量，可限制最长边；多张图并行处理（Web Worker）
 - 压完反而变大时自动用原图；本来就是 AVIF / WebP / JXL 的图不重复压缩
 
-### 实况照片与 HDR 完整保留
+### 实况照片与 HDR 不丢失
 
-手机拍的**实况照片**（Motion Photo，一个 JPEG 里带着一段视频）和 **Ultra HDR** 照片（JPEG + 增益图），一经压缩，视频和 HDR 信息就会丢失。CF-ImgHub 上传时会**逐张检查文件内容**，认出以下格式就跳过压缩、原样上传：
+手机拍的**实况照片**（Motion Photo，一个 JPEG 里带着一段视频）和 **Ultra HDR** 照片（JPEG + 增益图），交给普通压缩工具，视频和 HDR 信息就会丢失。CF-ImgHub 上传时会**逐张检查文件内容**：
 
-- 实况照片：Google Motion Photo、OPPO / 一加 / realme 的 O Live
-- HDR：Ultra HDR / ISO 21496-1 增益图 JPEG，带增益图的 HEIF / AVIF
-- 动图（GIF、APNG、动态 WebP / AVIF）、SVG、ICO、视频
+- **实况照片**（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信转存的）在浏览器里拆开分别处理，再按原结构装回，手机相册照样识别为实况：
 
-服务器从不改动文件字节，所以下载回来和手机里的原档一模一样。Ultra HDR 图片在支持 HDR 的屏幕上用 Chrome / Edge 打开会自动显示高亮。
+  | 档位 | 做法 |
+  |------|------|
+  | 原样 | 不改动 |
+  | 精简 | 去掉手机私有数据，画质无损 |
+  | **标准**（默认） | 再重新压缩主图，HDR 与视频都保留，体积约减半 |
+  | 紧凑 | 再把实况视频转为 SDR（静态图仍是 HDR） |
+  | 极致 | 再去掉 HDR，主图按最长边缩小 |
+
+  已经压过的部分（例如微信转存的视频）会自动跳过。实况照片处理后保留 EXIF（包括定位信息）
+- **HDR 照片**原样上传：Ultra HDR / ISO 21496-1 增益图 JPEG，带增益图的 HEIF / AVIF
+- 动图（GIF、APNG、动态 WebP / AVIF）、SVG、ICO、视频也原样上传
+
+服务器从不改动文件字节，原样上传的文件下载回来和手机里的原档一模一样。Ultra HDR 图片在支持 HDR 的屏幕上用 Chrome / Edge 打开会自动显示高亮。
 
 ## 其他功能
 

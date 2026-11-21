@@ -27,7 +27,7 @@ const WEBP_OPTS = {
 let avif, webp;
 
 self.onmessage = async ({ data }) => {
-  const { id, bitmap, format, quality, maxEdge } = data;
+  const { id, bitmap, format, quality, maxEdge, q } = data; // q：直接指定 JPEG 质量（实况主图用）
   try {
     const { width, height } = fit(bitmap.width, bitmap.height, maxEdge);
     const canvas = drawScaled(bitmap, width, height, format === 'jpeg');
@@ -47,7 +47,7 @@ self.onmessage = async ({ data }) => {
       if (!out) throw new Error('encode failed');
       buf = out.byteLength === out.buffer.byteLength ? out.buffer : out.slice().buffer;
     } else {
-      const blob = await canvas.convertToBlob({ type: `image/${format}`, quality: QUALITY.jpeg[quality] });
+      const blob = await canvas.convertToBlob({ type: `image/${format}`, quality: q ?? QUALITY.jpeg[quality] });
       buf = await blob.arrayBuffer();
     }
     self.postMessage({ id, buf, width, height }, [buf]);

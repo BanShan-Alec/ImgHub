@@ -1,4 +1,4 @@
-// 把浏览器端用到的编码器（jSquash 的单线程 AVIF / SIMD WebP）复制到 public/vendor/
+// 把浏览器端用到的编码器（jSquash 的单线程 AVIF / SIMD WebP、mediabunny）复制到 public/vendor/
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,9 @@ const files = [
   ['@jsquash/webp/codec/enc/webp_enc_simd.wasm', 'webp_enc_simd.wasm'],
   ['@jsquash/avif/LICENSE', 'LICENSE-jsquash-avif'],
   ['@jsquash/webp/LICENSE', 'LICENSE-jsquash-webp'],
+  // 实况视频转码（MP4 拆包/封装 + WebCodecs），只在实况「压视频」档按需加载
+  ['mediabunny/dist/bundles/mediabunny.min.mjs', 'mediabunny.min.mjs'],
+  ['mediabunny/LICENSE', 'LICENSE-mediabunny'],
 ];
 for (const [from, to] of files) copyFileSync(join(root, 'node_modules', from), join(out, to));
 console.log(`vendor: ${files.length} files -> public/vendor/`);

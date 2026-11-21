@@ -1,5 +1,6 @@
 // 上传页：登录 → 选文件 → 判断是否豁免 → 浏览器内转码 → 上传 → 记录
 import { t } from './i18n.js';
+import { parseLive, slimLive, transcodeVideo } from './live.js';
 import { $, api, canDo, confirmBox, copyText, errText, gate, icon, initLang, logout, morph, setShape, size, snack, snippet, topbarShadow, when, wavy } from './ui.js';
 
 const store = {
@@ -14,7 +15,10 @@ const opts = {
   quality: store.get('quality', 'balanced'),
   edge: store.get('edge', '0'),
   naming: store.get('naming', 'std'), // 默认按图床规范命名
+  live: store.get('live', '2'), // 实况照片：0 原样 / 1 精简 / 2 标准 / 3 紧凑 / 4 极致
 };
+// 实况主图的 JPEG 质量（原档约 q97，q90 时肉眼无差，见 AGENTS.md §5.5）
+const LIVE_Q = { high: 0.95, balanced: 0.9, small: 0.85 };
 const UNDO_WINDOW = 24 * 3600 * 1000;
 let session = { role: null };
 
@@ -25,7 +29,7 @@ document.addEventListener('langchange', renderHistory);
 $('#logout').onclick = logout;
 
 // ---------- 选项 ----------
-const GROUPS = ['mode', 'format', 'quality', 'edge', 'naming'];
+const GROUPS = ['mode', 'format', 'quality', 'edge', 'naming', 'live'];
 for (const name of GROUPS) {
   $(`#${name}`).addEventListener('click', (e) => {
     const b = e.target.closest('button');
@@ -45,7 +49,10 @@ function syncOpts() {
   }
   $('#formatField').hidden = opts.mode !== 'custom';
   const lossy = opts.mode === 'auto' || opts.format !== 'png';
-  $('#qualityField').hidden = opts.mode === 'original' || !lossy;
+  $('#qualityField').hidden = opts.mode === 'original' || (!lossy && opts.live < '2');
+  $('#liveField').hidden = opts.mode === 'original';
+  $('#liveHint').dataset.i18n = `lvHint${opts.live}`;
+  $('#liveHint').textContent = t($('#liveHint').dataset.i18n);
   $('#edgeField').hidden = opts.mode === 'original';
   $('#namingHint').dataset.i18n = opts.naming === 'std' ? 'namingHint' : 'origHint';
   $('#namingHint').textContent = t($('#namingHint').dataset.i18n);
@@ -106,7 +113,7 @@ function releaseWorker(w) {
   const next = waiters.shift();
   next ? next(w) : idle.push(w);
 }
-async function convert(bitmap, format) {
+async function convert(bitmap, format, extra = {}) {
   const w = await getWorker();
   try {
     return await new Promise((resolve, reject) => {
@@ -115,7 +122,7 @@ async function convert(bitmap, format) {
         if (data.id !== id) return;
         data.error ? reject(new Error(data.error)) : resolve(data);
       };
-      w.postMessage({ id, bitmap, format, quality: opts.quality, maxEdge: Number(opts.edge) }, [bitmap]);
+      w.postMessage({ id, bitmap, format, quality: opts.quality, maxEdge: Number(opts.edge), ...extra }, [bitmap]);
     });
   } finally {
     releaseWorker(w);
@@ -171,7 +178,15 @@ async function processFile(file) {
     let reason = await keepReason(file);
     const chips = [];
 
-    if (!reason) {
+    if (reason === 'rLive' && opts.live !== '0') {
+      ui.status(t('sConverting'), null);
+      const r = await liveSlim(file, ui);
+      reason = r.reason ?? null;
+      if (!reason) {
+        blob = r.blob;
+        chips.push(...r.chips);
+      }
+    } else if (!reason) {
       ui.status(t('sConverting'), null);
       let bitmap = null;
       try {
@@ -197,7 +212,7 @@ async function processFile(file) {
       }
     }
     if (reason) {
-      chips.push([reason === 'rLive' ? 'live' : reason === 'rHdr' ? 'tertiary' : 'primary', `${t('keptOriginal')} · ${t(reason)}`], ['', size(file.size)]);
+      chips.push([/^rLive/.test(reason) ? 'live' : reason === 'rHdr' ? 'tertiary' : 'primary', `${t('keptOriginal')} · ${t(reason)}`], ['', size(file.size)]);
     }
 
     const res = await upload(blob, name, (p) => ui.status(t('sUploading', { p }), p));
@@ -207,6 +222,38 @@ async function processFile(file) {
   } catch (err) {
     ui.fail(err.message);
   }
+}
+
+// 实况照片分级瘦身：主图在 Worker 里重编码，其余在 live.js 里拆装
+async function liveSlim(file, ui) {
+  const live = parseLive(await file.arrayBuffer());
+  if (!live) return { reason: 'rLiveUnknown' };
+  const level = Number(opts.live);
+  const out = await slimLive(live, level, async (src, dropHdr) => {
+    // 不做色彩转换、不按 EXIF 旋转：像素原样重编码，ICC 与 EXIF 方向沿用原来的段
+    const bitmap = await createImageBitmap(src, { colorSpaceConversion: 'none', imageOrientation: 'none' }).catch(() => null);
+    if (!bitmap) return null;
+    const r = await convert(bitmap, 'jpeg', { q: LIVE_Q[opts.quality], maxEdge: dropHdr ? Number(opts.edge) : 0 });
+    return new Uint8Array(r.buf);
+  }, async (video) => {
+    ui.status(t('sVideo', { p: 0 }), 0);
+    try {
+      return await transcodeVideo(video, opts.quality, (p) => ui.status(t('sVideo', { p: Math.round(p * 100) }), Math.round(p * 100)));
+    } catch (err) {
+      console.warn('video transcode failed', err);
+      return { skip: 'error' };
+    }
+  });
+  // 没东西可去（例如微信转存版没有私有尾部）时原样上传
+  if (out.bytes.length >= file.size) return { reason: out.bytes.length === file.size ? 'rLiveNoop' : 'rLarger' };
+  const chips = [['live', `${t('rLive')} · ${t(`lv${level}`)}`]];
+  if (live.gainmap && !out.droppedHdr) chips.push(['tertiary', 'HDR']);
+  if (out.videoDone) chips.push(['primary', t('vSdr')]);
+  else if (out.videoSkip) chips.push(['', t(`vSkip_${out.videoSkip}`)]);
+  chips.push(['', `${size(file.size)} → ${size(out.bytes.length)}`]);
+  const saved = Math.round((1 - out.bytes.length / file.size) * 100);
+  if (saved > 0) chips.push(['success', `−${saved}%`]);
+  return { blob: new Blob([out.bytes], { type: 'image/jpeg' }), chips };
 }
 
 // XHR 才有上传进度；会话 Cookie 同源自动带上
