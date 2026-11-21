@@ -6,14 +6,14 @@
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#fff8f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a110e" media="(prefers-color-scheme: dark)">
-<title>CF-ImgHub</title>
+<title>CF ImgHub</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css">
 <script type="module" src="/settings.js"></script>
 </head>
 <body class="locked" data-title="settingsTitle">
 <header class="topbar">
-  <a class="brand" href="/settings"><i data-icon="logo" class="mark"></i><span class="name">CF-ImgHub</span><span class="tag" data-i18n="tagSettings"></span></a>
+  <a class="brand" href="/settings"><i data-icon="logo" class="mark"></i><span class="name">CF ImgHub</span><span class="tag" data-i18n="tagSettings"></span></a>
   <button class="btn icon state" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
   <a class="btn icon state gh-top" href="https://github.com/TG-Twilight/CF-ImgHub" target="_blank" rel="noopener" data-i18n-tip="github"><i data-icon="github"></i></a>
   <a class="btn icon state" href="/admin" data-i18n-tip="toAdmin"><i data-icon="dashboard"></i></a>
@@ -61,6 +61,10 @@
       <span><h2 class="title-l" data-i18n="bgTitle"></h2><small data-i18n="bgNote"></small></span>
     </div>
     <div class="bg-list" id="bgList"></div>
+    <form class="site-add" id="bgForm">
+      <label class="search"><i data-icon="link"></i><input id="bgUrl" autocomplete="off" spellcheck="false" inputmode="url"></label>
+      <button class="btn tonal state" type="submit"><i data-icon="add"></i><span class="lbl" data-i18n="add"></span></button>
+    </form>
     <div class="setting" data-bg="login">
       <span><b data-i18n="bgLogin"></b><small data-i18n="bgLoginNote"></small></span>
       <button class="toggle" type="button" role="switch" aria-checked="false" data-i18n-tip="bgLogin"><span class="thumb"></span></button>
@@ -89,14 +93,5 @@
   </section>
 </main>
 
-<dialog class="dlg picker" id="picker">
-  <div class="picker-head">
-    <h3 class="title-l" data-i18n="bgPickTitle"></h3>
-    <span class="count" id="pickCount"></span>
-  </div>
-  <label class="search"><i data-icon="search"></i><input id="pickQ" type="search" data-i18n-ph="search" autocomplete="off" spellcheck="false"></label>
-  <div class="grid" id="pickGrid"></div>
-  <div class="actions"><button class="btn state" value="cancel" data-i18n="cancel"></button><button class="btn filled state" value="done" data-i18n="done"></button></div>
-</dialog>
 </body>
 </html>

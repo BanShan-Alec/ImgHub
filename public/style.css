@@ -434,7 +434,7 @@ body:has(.ftb) .page { padding-bottom: 96px; }
   .stat.s4 .toggle { right: 18px; bottom: 18px; }
 }
 /* 窄屏管理页：顶栏放不下名字 + 标签 + 4 个按钮，只留 Logo 和标签 */
-@media (max-width: 440px) { .brand:has(.tag) .name { display: none; } }
+@media (max-width: 440px) { .brand:has(.tag:not(.home)) .name { display: none; } }
 
 /* 放行网站：输入胶囊 + 添加框 */
 .sites { display: grid; gap: 14px; padding: 18px 20px; margin-bottom: 20px; border-radius: var(--r-xl); background: var(--surface-low); }
@@ -581,29 +581,14 @@ dialog.detail { width: min(760px, calc(100vw - 24px)); padding: 0; overflow: hid
 .group[aria-busy] { opacity: 0.6; pointer-events: none; }
 
 .bg-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.bg-item, .bg-add { position: relative; aspect-ratio: 16 / 10; border-radius: var(--r-l); overflow: hidden; background: var(--surface-highest); }
+.bg-item { position: relative; aspect-ratio: 16 / 10; border-radius: var(--r-l); overflow: hidden; background: var(--surface-highest); }
 .bg-item { display: grid; place-items: center; color: var(--on-surface-variant); animation: item-in var(--d-default) var(--spring) backwards; }
 .bg-item img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .bg-item .bg-n { position: absolute; top: 8px; left: 8px; min-width: 26px; height: 26px; padding: 0 8px; border-radius: var(--r-full); display: grid; place-items: center; background: var(--primary); color: var(--on-primary); font-weight: 700; font-size: 13px; }
 .bg-item .bg-acts { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 2px; padding: 2px; border-radius: var(--r-full); background: rgb(0 0 0 / 0.5); }
 .bg-item .bg-acts .btn.icon { --h: 30px; color: #fff; }
 .bg-item .bg-acts .btn[aria-busy] { opacity: 0.5; }
-.bg-add { display: grid; place-content: center; justify-items: center; gap: 6px; border: 0; cursor: pointer; color: var(--on-secondary-container); background: var(--secondary-container); font-weight: 600; transition: border-radius var(--d-fast) var(--spring); }
-.bg-add:hover { border-radius: var(--r-xl); }
 .bg-list .chips-empty { grid-column: 1 / -1; }
-
-/* 选图对话框 */
-dialog.picker { width: min(860px, calc(100vw - 24px)); max-height: calc(100dvh - 48px); grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 14px; }
-dialog.picker[open] { display: grid; }
-.picker-head { display: flex; align-items: center; gap: 12px; }
-dialog.dlg .picker-head h3 { text-align: left; margin-right: auto; }
-.picker-head .count { padding: 4px 12px; border-radius: var(--r-full); background: var(--primary-container); color: var(--on-primary-container); font-weight: 700; font-size: 13px; }
-.picker .search { height: 48px; }
-.picker .grid { overflow: auto; min-height: 200px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); align-content: start; padding: 4px; }
-dialog.dlg.picker .actions { margin-top: 0; }
-.tile.pick { border: 0; padding: 0; }
-.tile.pick .check { opacity: 1; transform: scale(1); color: transparent; font-weight: 800; font-size: 14px; }
-.tile.pick.sel .check { color: var(--on-primary); }
 
 /* ---------- 页脚 ---------- */
 .foot { display: grid; gap: 8px; justify-items: center; padding: 20px 16px 28px; color: var(--on-surface-variant); font-size: 13px; }

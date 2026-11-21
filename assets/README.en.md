@@ -46,7 +46,7 @@ The server never touches the bytes, so a download matches the file on your phone
 ## More features
 
 - **Upload, admin and settings pages**: Material 3 Expressive UI, light / dark, Simplified Chinese / Traditional Chinese / English
-- **Backgrounds**: pick up to 5 images from the host as the sign-in / upload page background; several rotate
+- **Backgrounds**: up to 5 image URLs (from this host or any https site) as the sign-in / upload page background; several rotate
 - **Two roles**: uploaders need only a password and can undo uploads from the last 24 hours; admins can browse, search, preview, bulk delete and manage hotlink protection
 - **Hotlink protection**: one switch on the settings page, where allowed sites (subdomains included) are listed too; single images can be exempted on the admin page. Requests without a referrer (direct visits, RSS apps) always pass, and common web RSS readers pass by default (can be turned off)
 - **Readable file names**: `ImgHub-20261121-153045-k7q2.avif` (upload time + random code) by default, or keep the original name

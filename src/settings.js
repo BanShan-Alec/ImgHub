@@ -4,7 +4,8 @@
 // 防盗链语义：hotlink=true 时全局开启；allow 是后台填的放行网站（含子域）；exempt 里的 key 单独放行（单张开关）。
 // domains：本图床绑定的其他域名（只认完整主机名）。上传页/管理页可选用哪个域名生成链接，防盗链也把它们当作自身。
 // rss：是否放行内建的网页版 RSS 阅读器名单（默认开）。
-// bg：登录页 / 上传页背景，keys 是本图床里的图片（最多 5 张，多于 1 张时轮播），interval 为轮播秒数。
+// bg：登录页 / 上传页背景，urls 是图片地址（https 完整地址或本站 /file/… 路径，最多 5 个，多于 1 个时轮播），interval 为轮播秒数。
+// 旧版存的是 keys（本图床的 key），读取时自动转成 /file/<key>。
 // links：页脚里额外的友情链接 [{name, url}]（秋风塬上、秋风广告规则两站是内建的，写死在前端 ui.js，不能移除）。bg 与 links 登录前就要用，经 GET /api/site 公开（见 siteInfo）。
 // 单张设置不写进对象的 customMetadata，因为图片回应会在 Cache API 里缓存一年，
 // 改了 metadata 也清不掉其他机房的缓存；放在设置里则所有机房 30 秒内生效。
@@ -19,7 +20,7 @@ const DEFAULTS = {
   allow: ['awads.cc', 'awavenue.top', 'example.com'],
   exempt: [],
   domains: [],
-  bg: { keys: [], login: true, upload: true, interval: 10 },
+  bg: { urls: [], login: true, upload: true, interval: 10 },
   links: [],
 };
 export const MAX_SITES = 200;
@@ -69,7 +70,7 @@ function normalize(d) {
     exempt: Array.isArray(d?.exempt) ? [...new Set(d.exempt.filter((k) => typeof k === 'string' && k))] : [],
     domains: Array.isArray(d?.domains) ? [...new Set(d.domains.map(normSite).filter(Boolean))].slice(0, MAX_DOMAINS) : [],
     bg: {
-      keys: Array.isArray(bg.keys) ? [...new Set(bg.keys.filter(isFileKey))].slice(0, MAX_BG) : [],
+      urls: [...new Set((Array.isArray(bg.urls) ? bg.urls : Array.isArray(bg.keys) ? bg.keys.filter(isFileKey).map((k) => `/file/${encodeURIComponent(k)}`) : []).map(normBgUrl).filter(Boolean))].slice(0, MAX_BG),
       login: typeof bg.login === 'boolean' ? bg.login : DEFAULTS.bg.login,
       upload: typeof bg.upload === 'boolean' ? bg.upload : DEFAULTS.bg.upload,
       interval: BG_INTERVALS.includes(bg.interval) ? bg.interval : DEFAULTS.bg.interval,
@@ -79,6 +80,20 @@ function normalize(d) {
 }
 
 export const isFileKey = (k) => typeof k === 'string' && k.length > 0 && k.length <= 1024 && !k.startsWith('.');
+
+// 背景图地址：https 完整地址，或以 / 开头的本站路径（不收 //host 这种协议相对地址）；不合法返回 null
+export function normBgUrl(input) {
+  if (typeof input !== 'string') return null;
+  const s = input.trim();
+  if (!s || s.length > 1000) return null;
+  if (s.startsWith('/')) return s.startsWith('//') || /\s/.test(s) ? null : s;
+  try {
+    const u = new URL(s);
+    return u.protocol === 'https:' ? u.href : null; // http 图片在 https 页面上会被浏览器拦下
+  } catch {
+    return null;
+  }
+}
 
 // 友情链接：名称 1–40 字，地址只收 http(s)；不合法返回 null
 export function normLink(l) {

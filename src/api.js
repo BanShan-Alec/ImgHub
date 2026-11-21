@@ -2,7 +2,7 @@
 // 错误只返回代码（error 字段），由前端按语言翻译
 import { pickContentType } from './mime.js';
 import { allStores, BRAND, keyTime, writeStore } from './stores.js';
-import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, getSettings, isFileKey, normLink, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
+import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, getSettings, normBgUrl, normLink, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
 import { RSS_READERS } from './serve.js';
 import { hasRole, identify, login, logoutCookie, sameOrigin } from './auth.js';
 
@@ -57,7 +57,7 @@ export async function handleApi(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return stats(env);
   if (path === '/api/settings' && method === 'GET') return json({ ...publicSettings(await getSettings(env)), rssReaders: RSS_READERS });
   if (path === '/api/settings' && method === 'POST') {
-    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {keys?, login?, upload?, interval?}, links?: [{name, url}]}，至少给一项
+    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {urls?, login?, upload?, interval?}, links?: [{name, url}]}，至少给一项
     const body = await request.json().catch(() => null);
     const next = {};
     for (const f of ['hotlink', 'rss']) {
@@ -90,7 +90,14 @@ export async function handleApi(request, env, ctx, url) {
     if ('bg' in (body ?? {})) {
       const b = body.bg;
       if (!b || typeof b !== 'object') return json({ error: 'bad_request' }, 400);
-      if ('keys' in b && (!Array.isArray(b.keys) || b.keys.length > MAX_BG || !b.keys.every(isFileKey))) return json({ error: 'bad_request' }, 400);
+      if ('urls' in b) {
+        if (!Array.isArray(b.urls) || b.urls.length > MAX_BG) return json({ error: 'bad_request' }, 400);
+        const urls = b.urls.map(normBgUrl);
+        const bad = b.urls.find((_, i) => !urls[i]);
+        if (bad !== undefined) return json({ error: 'bad_url', site: String(bad) }, 400);
+        b.urls = urls;
+      }
+      delete b.keys;
       if (('login' in b && typeof b.login !== 'boolean') || ('upload' in b && typeof b.upload !== 'boolean')) return json({ error: 'bad_request' }, 400);
       if ('interval' in b && !BG_INTERVALS.includes(b.interval)) return json({ error: 'bad_request' }, 400);
       bgPatch = b;
@@ -192,16 +199,12 @@ async function list(env, url) {
 async function removeKeys(env, url, keys) {
   const stores = allStores(env);
   await Promise.all(stores.map((s) => s.bucket.delete(keys)));
-  // 顺手把它们从防盗链豁免名单和背景图里拿掉
+  // 顺手把它们从防盗链豁免名单里拿掉（背景图是自由填写的地址，不跟着删）
   const cur = await getSettings(env, { fresh: true });
   const origins = [...new Set([url.origin, ...cur.domains.map((d) => `https://${d}`)])];
   const gone = new Set(keys);
-  if (keys.some((k) => cur.exemptSet.has(k) || cur.bg.keys.includes(k))) {
-    await saveSettings(env, {
-      ...cur,
-      exempt: cur.exempt.filter((k) => !gone.has(k)),
-      bg: { ...cur.bg, keys: cur.bg.keys.filter((k) => !gone.has(k)) },
-    });
+  if (keys.some((k) => cur.exemptSet.has(k))) {
+    await saveSettings(env, { ...cur, exempt: cur.exempt.filter((k) => !gone.has(k)) });
   }
   await Promise.all(
     keys.flatMap((key) => {

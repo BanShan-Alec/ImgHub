@@ -465,19 +465,18 @@ export const BUILTIN_LINKS = [
 ];
 let siteReq;
 // 公开设置（背景、页脚链接）：每页只取一次；设置页保存后用 setSite() 更新
-export const site = () => (siteReq ??= api('/api/site').then((r) => (r.ok ? r.body : { bg: { keys: [] }, links: [] })));
+export const site = () => (siteReq ??= api('/api/site').then((r) => (r.ok ? r.body : { bg: { urls: [] }, links: [] })));
 export function setSite(info) {
   siteReq = Promise.resolve(info);
   footer();
 }
-export const fileUrl = (key) => `/file/${encodeURIComponent(key)}`;
 const BG_FADE = 1200; // 与 CSS 里 .backdrop img 的淡入时长一致
 
 // 背景轮播：两层 <img> 交替淡入。which = 'login' | 'upload' | null（无背景）
 let bg = { sig: null, timer: 0 };
 export async function backdrop(which) {
   const info = await site();
-  const keys = which && info.bg?.[which] ? info.bg.keys ?? [] : [];
+  const keys = which && info.bg?.[which] ? info.bg.urls ?? [] : []; // 图片地址（本站路径或外部 https）
   const sig = `${which}|${keys.join('|')}|${info.bg?.interval}`;
   if (sig === bg.sig) return;
   clearInterval(bg.timer);
@@ -492,7 +491,7 @@ export async function backdrop(which) {
     box = document.createElement('div');
     box.className = 'backdrop';
     box.setAttribute('aria-hidden', 'true');
-    box.innerHTML = '<img alt=""><img alt="">';
+    box.innerHTML = '<img alt="" referrerpolicy="no-referrer"><img alt="" referrerpolicy="no-referrer">';
     document.body.prepend(box);
   }
   const layers = [...box.querySelectorAll('img')];
@@ -501,7 +500,7 @@ export async function backdrop(which) {
   let i = Math.floor(Math.random() * keys.length);
   const show = async (key) => {
     const next = layers[1 - front];
-    next.src = fileUrl(key);
+    next.src = key;
     try {
       await next.decode();
     } catch {
@@ -549,7 +548,7 @@ export async function footer() {
   };
   const brand = document.createElement('span');
   brand.className = 'foot-brand';
-  brand.append(logo('foot-logo'), 'CF-ImgHub');
+  brand.append(logo('foot-logo'), 'CF ImgHub');
   const gh = link(GITHUB, icon('github', 'sm'), t('footSource'));
   gh.className = 'gh';
   const label = document.createElement('span');

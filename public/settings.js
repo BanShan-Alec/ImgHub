@@ -1,7 +1,7 @@
 // 设置页（管理员）：防盗链与 RSS 阅读器放行、放行网站、链接域名、登录页/上传页背景、页脚友情链接。
 // 每项改动立即保存（POST /api/settings），服务端负责规范化与校验
 import { t } from './i18n.js';
-import { $, BUILTIN_LINKS, api, errText, fileUrl, gate, icon, initLang, loader, logout, setDomains, setShape, setSite, snack, timeOf, topbarShadow } from './ui.js';
+import { $, BUILTIN_LINKS, api, errText, gate, icon, initLang, logout, setDomains, setShape, setSite, snack, topbarShadow } from './ui.js';
 
 const MAX_BG = 5;
 const INTERVALS = [5, 10, 20, 40];
@@ -28,7 +28,7 @@ async function save(body, btn) {
   if (!r.ok) {
     if (r.status === 401) return reauth();
     const e = r.body?.error;
-    snack(e === 'bad_site' ? t('e_bad_site', { site: r.body.site }) : e === 'bad_link' ? t('e_bad_link', { site: r.body.site }) : errText(r), { error: true });
+    snack(e === 'bad_site' ? t('e_bad_site', { site: r.body.site }) : e === 'bad_link' ? t('e_bad_link', { site: r.body.site }) : e === 'bad_url' ? t('e_bad_url', { site: r.body.site }) : errText(r), { error: true });
     return false;
   }
   apply(r.body);
@@ -135,20 +135,22 @@ $('#linkForm').onsubmit = async (e) => {
   }
 };
 
-// ---------- 背景图 ----------
+// ---------- 背景图：填地址（本站 /file/… 或任意 https 图片），最多 5 个 ----------
 function renderBg() {
-  const keys = settings.bg.keys;
+  const urls = settings.bg.urls;
   const box = $('#bgList');
   box.replaceChildren();
-  keys.forEach((key, i) => {
+  urls.forEach((src, i) => {
     const item = document.createElement('div');
     item.className = 'bg-item';
     const img = new Image();
     img.alt = '';
     img.loading = 'lazy';
-    img.src = fileUrl(key);
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.src = src;
     img.onerror = () => img.replaceWith(icon('image'));
-    item.title = key;
+    item.title = src;
     const n = document.createElement('span');
     n.className = 'bg-n';
     n.textContent = i + 1;
@@ -165,27 +167,23 @@ function renderBg() {
       return b;
     };
     const move = (d) => (b) => {
-      const next = [...keys];
+      const next = [...urls];
       [next[i], next[i + d]] = [next[i + d], next[i]];
-      save({ bg: { keys: next } }, b);
+      save({ bg: { urls: next } }, b);
     };
     bar.append(
       act('left', 'moveLeft', move(-1), i === 0),
-      act('right', 'moveRight', move(1), i === keys.length - 1),
-      act('delete', 'remove', (b) => save({ bg: { keys: keys.filter((k) => k !== key) } }, b)),
+      act('right', 'moveRight', move(1), i === urls.length - 1),
+      act('delete', 'remove', (b) => save({ bg: { urls: urls.filter((_, j) => j !== i) } }, b)),
     );
     item.append(img, n, bar);
     box.append(item);
   });
-  if (keys.length < MAX_BG) {
-    const add = document.createElement('button');
-    add.type = 'button';
-    add.className = 'bg-add state';
-    add.append(icon('add'), Object.assign(document.createElement('span'), { textContent: t('bgPick') }));
-    add.onclick = openPicker;
-    box.append(add);
-  }
-  if (!keys.length) box.append(emptyNote('bgEmpty'));
+  if (!urls.length) box.append(emptyNote('bgEmpty'));
+  const full = urls.length >= MAX_BG;
+  $('#bgUrl').disabled = full;
+  $('#bgForm button').disabled = full;
+  $('#bgUrl').placeholder = t(full ? 'bgMax' : 'bgUrl');
 
   const group = $('#bgInterval');
   group.replaceChildren(
@@ -198,90 +196,28 @@ function renderBg() {
       return b;
     }),
   );
-  $('#intervalField').classList.toggle('dim', keys.length < 2);
+  $('#intervalField').classList.toggle('dim', urls.length < 2);
 }
 
-// 选图对话框：列出图床里的图片（新的在前），点选 / 取消，顺序即点选顺序
-const picker = $('#picker');
-let images = null;
-let picked = [];
-async function openPicker() {
-  picked = [...settings.bg.keys];
-  $('#pickQ').value = '';
-  picker.showModal();
-  if (!images) {
-    $('#pickGrid').replaceChildren(loader(true));
-    const all = [];
-    let cursor = '';
-    do {
-      const r = await api(`/api/list?limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
-      if (!r.ok) {
-        picker.close();
-        if (r.status === 401) return reauth();
-        return snack(errText(r), { error: true });
-      }
-      all.push(...r.body.items);
-      cursor = r.body.cursor;
-    } while (cursor);
-    images = all.filter((o) => /^image\//.test(o.contentType)).sort((a, b) => timeOf(b) - timeOf(a));
+// 本图床的图片链接（任一绑定域名）存成 /file/… 路径，换域名也不失效；可一次贴多个（空白分隔）
+function bgPath(s) {
+  try {
+    const u = new URL(s, location.href);
+    const own = u.host === location.host || (settings.domains ?? []).includes(u.hostname);
+    return own && u.pathname.startsWith('/file/') ? u.pathname : s;
+  } catch {
+    return s;
   }
-  renderPicker();
 }
-const LIMIT = 240;
-function renderPicker() {
-  const q = $('#pickQ').value.trim().toLowerCase();
-  const list = images.filter((o) => !q || o.key.toLowerCase().includes(q) || o.name?.toLowerCase().includes(q)).slice(0, LIMIT);
-  const grid = $('#pickGrid');
-  grid.replaceChildren();
-  if (!list.length) grid.append(emptyNote(images.length ? 'noMatch' : 'noImages'));
-  for (const o of list) {
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = 'tile pick';
-    el.dataset.key = o.key;
-    el.title = o.name || o.key;
-    const media = document.createElement('div');
-    media.className = 'media';
-    const img = new Image();
-    img.alt = '';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    img.src = fileUrl(o.key);
-    img.onerror = () => img.replaceWith(icon('image'));
-    media.append(img);
-    const check = document.createElement('span');
-    check.className = 'check';
-    el.append(media, check);
-    el.onclick = () => {
-      const i = picked.indexOf(o.key);
-      if (i >= 0) picked.splice(i, 1);
-      else if (picked.length >= MAX_BG) return snack(t('bgMax'), { error: true });
-      else picked.push(o.key);
-      syncPicker();
-    };
-    grid.append(el);
-  }
-  syncPicker();
-}
-function syncPicker() {
-  for (const el of picker.querySelectorAll('.tile')) {
-    const i = picked.indexOf(el.dataset.key);
-    el.classList.toggle('sel', i >= 0);
-    $('.check', el).textContent = i >= 0 ? i + 1 : '';
-  }
-  $('#pickCount').textContent = t('bgPicked', { n: picked.length });
-}
-let pickTimer;
-$('#pickQ').addEventListener('input', () => {
-  clearTimeout(pickTimer);
-  pickTimer = setTimeout(renderPicker, 150);
-});
-$('[value=cancel]', picker).onclick = () => picker.close();
-$('[value=done]', picker).onclick = async (e) => {
-  const same = picked.length === settings.bg.keys.length && picked.every((k, i) => k === settings.bg.keys[i]);
-  if (same || (await save({ bg: { keys: picked } }, e.currentTarget))) picker.close();
+$('#bgForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const input = $('#bgUrl');
+  const add = input.value.split(/\s+/).filter(Boolean).map(bgPath);
+  if (!add.length) return input.focus();
+  const next = [...new Set([...settings.bg.urls, ...add])];
+  if (next.length > MAX_BG) return snack(t('bgMax'), { error: true });
+  if (await save({ bg: { urls: next } }, $('#bgForm button'))) input.value = '';
 };
-picker.addEventListener('click', (e) => e.target === picker && picker.close());
 
 // ---------- 启动 ----------
 let reauthing = null;
