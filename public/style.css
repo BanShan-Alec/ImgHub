@@ -152,7 +152,7 @@ svg.icon { width: 24px; height: 24px; fill: currentColor; flex: none; display: b
 }
 .field:focus-within { box-shadow: inset 0 -3px 0 var(--primary); border-radius: var(--r-l); }
 .field input {
-  flex: 1; min-width: 0; height: 60px; padding: 24px 16px 6px; border: 0; background: transparent; outline: none;
+  flex: 1; min-width: 0; width: 0; height: 60px; padding: 24px 16px 6px; border: 0; background: transparent; outline: none;
   font-size: 16px;
 }
 .field label {
@@ -172,7 +172,7 @@ svg.icon { width: 24px; height: 24px; fill: currentColor; flex: none; display: b
   transition: border-radius var(--d-default) var(--spring), box-shadow 200ms;
 }
 .search:focus-within { box-shadow: 0 0 0 2px var(--primary); }
-.search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 16px; color: var(--on-surface); }
+.search input { flex: 1; min-width: 0; width: 0; height: 100%; border: 0; outline: 0; background: transparent; font-size: 16px; color: var(--on-surface); }
 
 /* ---------- 卡片 ---------- */
 .card { background: var(--surface-container); border-radius: var(--r-xl); padding: 20px; }
@@ -286,7 +286,7 @@ dialog.dlg p { color: var(--on-surface-variant); margin: 16px 0 0; word-break: b
 /* ---------- 登录闸门 ---------- */
 body.locked > :not(.gate):not(.snackbar):not(.backdrop):not(.foot) { display: none !important; }
 .gate {
-  flex: 1; display: grid; place-items: center; padding: 64px 24px 24px;
+  flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 64px 24px 24px;
   background:
     radial-gradient(60vmax 60vmax at 110% -10%, color-mix(in srgb, var(--primary-container) 80%, transparent), transparent 70%),
     radial-gradient(50vmax 50vmax at -10% 110%, color-mix(in srgb, var(--tertiary-container) 70%, transparent), transparent 70%),
@@ -294,9 +294,9 @@ body.locked > :not(.gate):not(.snackbar):not(.backdrop):not(.foot) { display: no
 }
 .gate .corner { position: fixed; top: 12px; right: 12px; display: flex; gap: 4px; }
 .gate-card {
-  width: min(420px, 100%); padding: 36px 28px 28px; border-radius: var(--r-xxl);
+  width: 100%; max-width: 420px; min-width: 0; padding: 36px 28px 28px; border-radius: var(--r-xxl);
   background: var(--surface-lowest); box-shadow: var(--shadow-1);
-  display: grid; gap: 16px; text-align: center;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; text-align: center;
   animation: rise var(--d-slow) var(--spring);
 }
 .gate-card.out { animation: away var(--d-default) var(--ease-fx) forwards; }
@@ -325,9 +325,9 @@ body.locked > :not(.gate):not(.snackbar):not(.backdrop):not(.foot) { display: no
 .page.narrow { max-width: 880px; }
 body:has(.ftb) .page { padding-bottom: 96px; }
 .upload-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
-.upload-grid > .side { position: sticky; top: 76px; display: grid; gap: 16px; }
+.upload-grid > .side { position: sticky; top: 76px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (max-width: 900px) {
-  .upload-grid { grid-template-columns: 1fr; }
+  .upload-grid { grid-template-columns: minmax(0, 1fr); }
   /* 手机：上传区 → 设置 → 队列和记录 */
   .upload-grid > .primary-col { display: contents; }
   .upload-grid > .side { position: static; order: 1; }
@@ -361,7 +361,9 @@ body:has(.ftb) .page { padding-bottom: 96px; }
 .drop .keys .chip { background: var(--surface-highest); color: var(--on-surface-variant); }
 .drop .btn { pointer-events: none; margin-top: 4px; }
 
-.opt { display: grid; gap: 8px; }
+.opt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+/* 极窄屏：按钮组放不下一行字时允许换行 */
+@media (max-width: 380px) { .group > button { white-space: normal; height: auto; min-height: 40px; padding: 4px 6px; line-height: 1.2; } }
 .opt + .opt { margin-top: 18px; }
 .opt .hint-s { color: var(--on-surface-variant); font-size: 12px; line-height: 17px; word-break: break-word; }
 .opt.collapse { transition: opacity 200ms; }
@@ -436,6 +438,8 @@ body:has(.ftb) .page { padding-bottom: 96px; }
 }
 /* 窄屏管理页：顶栏放不下名字 + 标签 + 4 个按钮，只留 Logo 和标签 */
 @media (max-width: 440px) { .brand:has(.tag:not(.home)) .name { display: none; } }
+/* 极窄屏首页：品牌名 + 标签会压到按钮，只留品牌名 */
+@media (max-width: 340px) { .brand .tag.home { display: none; } }
 
 /* 放行网站：输入胶囊 + 添加框 */
 .sites { display: grid; gap: 14px; padding: 18px 20px; margin-bottom: 20px; border-radius: var(--r-xl); background: var(--surface-low); }
@@ -446,11 +450,13 @@ body:has(.ftb) .page { padding-bottom: 96px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chips-empty { color: var(--on-surface-variant); font-size: 14px; opacity: 0.8; }
 .chip {
-  display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 4px 0 12px;
+  display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 12px;
   border-radius: var(--r-s); box-shadow: inset 0 0 0 1px var(--outline-variant);
   font: 500 14px var(--mono); color: var(--on-surface-variant); background: var(--surface);
   animation: item-in var(--d-default) var(--spring) backwards;
 }
+/* 带 × 的胶囊：右边留给按钮 */
+.chips > .chip:has(.chip-x) { padding-right: 4px; }
 .chip-x {
   display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: var(--r-full);
   background: transparent; color: inherit; cursor: pointer;
@@ -462,7 +468,7 @@ body:has(.ftb) .page { padding-bottom: 96px; }
 .site-add .btn[aria-busy] { opacity: 0.6; pointer-events: none; }
 
 .toolrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; margin-bottom: 16px; }
-@media (max-width: 720px) { .toolrow { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .toolrow { grid-template-columns: minmax(0, 1fr); } }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 10px; }
 @media (max-width: 640px) { .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; } }
@@ -556,8 +562,14 @@ dialog.detail { width: min(760px, calc(100vw - 24px)); padding: 0; overflow: hid
 .setting > span { flex: 1; display: grid; gap: 2px; min-width: 0; }
 .setting small { color: var(--on-surface-variant); font-size: 12px; line-height: 17px; }
 
-/* GitHub 按钮：窄屏顶栏放不下，只留页脚里那个 */
-@media (max-width: 560px) { .topbar .gh-top { display: none; } }
+/* 窄屏顶栏：只留页面导航，刷新/域名/语言/GitHub/退出收进「更多」菜单 */
+.topbar .more { display: none; }
+@media (max-width: 600px) {
+  .topbar .ovf { display: none; }
+  .topbar .more { display: inline-flex; }
+}
+.menu button svg.icon { flex: none; color: var(--on-surface-variant); }
+.menu .sep { height: 1px; margin: 4px 8px; background: var(--outline-variant); }
 
 /* ---------- 设置页 ---------- */
 .panel { display: grid; gap: 12px; padding: 20px; margin-bottom: 16px; border-radius: var(--r-xl); background: var(--surface-container); }

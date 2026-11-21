@@ -10,6 +10,7 @@ const ICONS = {
   add: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
   close: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
   check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+  more: 'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
   delete: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
   copy: 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z',
   public: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z',
@@ -177,6 +178,7 @@ export function initLang() {
   setLang(detectLang());
   hydrateIcons();
   for (const b of document.querySelectorAll('[data-lang-menu]')) langMenu(b);
+  moreMenu();
 }
 
 let menuSeq = 0;
@@ -201,7 +203,40 @@ function popMenu(button, items, current, pick) {
       menu.append(b);
     }
     menu.showPopover();
-    const r = button.getBoundingClientRect();
+    // 按钮收进了「更多」菜单（窄屏）时，菜单挂在「更多」按钮下面
+    const anchor = button.getClientRects().length ? button : $('.topbar [data-more-menu]') || button;
+    const r = anchor.getBoundingClientRect();
+    menu.style.top = `${r.bottom + 6}px`;
+    menu.style.left = `${Math.max(8, Math.min(r.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 8))}px`;
+  });
+}
+// 窄屏顶栏的「更多」菜单：列出被收起（.ovf）且未隐藏的按钮，点选时转交给原按钮
+function moreMenu() {
+  const more = $('.topbar [data-more-menu]');
+  if (!more) return;
+  const menu = document.createElement('div');
+  menu.className = 'menu';
+  menu.popover = 'auto';
+  menu.id = `menu-${++menuSeq}`;
+  document.body.append(menu);
+  more.addEventListener('click', () => {
+    menu.replaceChildren();
+    for (const el of document.querySelectorAll('.topbar .ovf')) {
+      if (el.hidden) continue;
+      if (el.id === 'logout' && menu.childElementCount) menu.append(Object.assign(document.createElement('div'), { className: 'sep' }));
+      const b = document.createElement('button');
+      b.className = 'state';
+      const svg = el.querySelector('svg');
+      if (svg) b.append(svg.cloneNode(true));
+      b.append(el.getAttribute('aria-label') || el.title || '');
+      b.onclick = () => {
+        menu.hidePopover();
+        el.click();
+      };
+      menu.append(b);
+    }
+    menu.showPopover();
+    const r = more.getBoundingClientRect();
     menu.style.top = `${r.bottom + 6}px`;
     menu.style.left = `${Math.max(8, Math.min(r.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 8))}px`;
   });
