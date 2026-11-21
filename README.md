@@ -17,51 +17,39 @@
   <b>简体中文</b> · <a href="assets/README.zh-Hant.md">繁體中文</a> · <a href="assets/README.en.md">English</a>
 </p>
 
-## 为什么用它
+## 特点
 
 ### 快
 
-图片直接从 Cloudflare 边缘返回：先查边缘缓存，没命中就读同一网络里的 R2，**读取路径上没有数据库，也不绕道第三方存储**。
-
-部署也快：没有构建步骤，几秒内生效。
+图片直接从 Cloudflare 边缘返回：先查缓存，未命中再读 R2，中间没有数据库，也不绕道第三方存储。
 
 ### 在浏览器里压缩
 
-上传前在你自己的浏览器里转码，服务器只存最终的字节：
-
-- 自动模式转 **AVIF**，也可以指定 WebP / JPEG / PNG，或完全不压缩
-- 三档质量，可限制最长边；多张图并行处理（Web Worker）
-- 压完反而变大时自动用原图；本来就是 AVIF / WebP / JXL 的图不重复压缩
+转码在上传前由浏览器完成，服务器只存结果。默认转 **AVIF**，也可选 WebP / JPEG / PNG 或不压缩；质量分三档，可限制最长边。压完变大时自动用原图。
 
 ### 实况照片与 HDR 不丢失
 
-手机拍的**实况照片**（Motion Photo，一个 JPEG 里带着一段视频）和 **Ultra HDR** 照片（JPEG + 增益图），交给普通压缩工具，视频和 HDR 信息就会丢失。CF-ImgHub 上传时会**逐张检查文件内容**：
+上传时按文件内容识别实况照片（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信转存的）和 HDR 照片（Ultra HDR / ISO 21496-1 增益图）。HDR 照片、动图、SVG、ICO、视频原样上传；实况照片拆开压缩后按原结构装回，相册照样识别：
 
-- **实况照片**（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信转存的）在浏览器里拆开分别处理，再按原结构装回，手机相册照样识别为实况：
+| 档位 | 做法 |
+|------|------|
+| 原样 | 不改动 |
+| 精简 | 去掉手机私有数据，画质无损 |
+| **标准**（默认） | 再重新压缩主图，HDR 与视频都保留，体积约减半 |
+| 紧凑 | 再把实况视频转为 SDR |
+| 极致 | 再去掉 HDR，主图按最长边缩小 |
 
-  | 档位 | 做法 |
-  |------|------|
-  | 原样 | 不改动 |
-  | 精简 | 去掉手机私有数据，画质无损 |
-  | **标准**（默认） | 再重新压缩主图，HDR 与视频都保留，体积约减半 |
-  | 紧凑 | 再把实况视频转为 SDR（静态图仍是 HDR） |
-  | 极致 | 再去掉 HDR，主图按最长边缩小 |
-
-  已经压过的部分（例如微信转存的视频）会自动跳过。实况照片处理后保留 EXIF（包括定位信息）
-- **HDR 照片**原样上传：Ultra HDR / ISO 21496-1 增益图 JPEG，带增益图的 HEIF / AVIF
-- 动图（GIF、APNG、动态 WebP / AVIF）、SVG、ICO、视频也原样上传
-
-服务器从不改动文件字节，原样上传的文件下载回来和手机里的原档一模一样。Ultra HDR 图片在支持 HDR 的屏幕上用 Chrome / Edge 打开会自动显示高亮。
+服务器从不改动文件字节。
 
 ## 其他功能
 
-- **上传页、管理页与设置页**：Material 3 Expressive 界面，亮 / 暗色，简体中文 / 繁體中文 / English
-- **背景图**：登录页、上传页可填最多 5 个图片地址（本图床或任意 https 图片）做背景，多张时轮播
-- **两种身份**：上传者只需密码，可撤回 24 小时内的上传；管理员可浏览、搜索、预览、批量删除和设置防盗链
-- **防盗链**：在设置页一键开启，放行的网站（含子域名）也在设置页填写，单张图片可在管理页单独放行。没有 Referer 的请求（直接打开、RSS App）始终放行，常见网页版 RSS 阅读器默认放行（可关）
-- **易读的文件名**：默认命名为 `ImgHub-20261121-153045-k7q2.avif`（上传时间 + 随机码），也可以保持原文件名
-- **脚本上传**：用 Bearer Token 调用 `/api/upload`，方便接入写作流程
-- **Telegram 存储（可选）**：设置页可选「R2 + Telegram 备份」（每个文件另存一份原档到频道，R2 里丢了自动改从 Telegram 读）或「仅 Telegram」（不占 R2 空间，超过 19MB 自动分片，单个文件最大 100MB）；已有文件可一键补备份，删除时频道里的也一起删
+- **两种身份**：上传者只需密码，可撤回 24 小时内的上传；管理员可浏览、搜索、批量删除和修改设置
+- **防盗链**：可自定放行网站，单张图片可单独放行；直接打开和 RSS 阅读器不受影响
+- **易读的文件名**：默认 `ImgHub-20261121-153045-k7q2.avif`，也可保持原名
+- **多域名、背景图、快捷链接**：都在设置页调整
+- **Telegram 存储（可选）**：作为 R2 的备份，或只存 Telegram
+- **脚本上传**：用 Bearer Token 调用 `/api/upload`
+- Material 3 Expressive 界面，亮 / 暗色，简体中文 / 繁體中文 / English
 
 ## 部署
 
@@ -76,7 +64,7 @@
 2. 按提示连接 GitHub 并授权。Cloudflare 会把本仓库复制一份到你的 GitHub 账户，以后在那里改代码会自动重新部署
 3. 项目名称保持 `cf-imghub` 或自己改
 4. R2 桶保持新建，名称可以改
-5. 依次填写下面 5 个密钥（页面上每项都附有说明）：
+5. 依次填写下面 5 个密钥：
 
    | 名称 | 填什么 |
    |------|------|
@@ -157,4 +145,4 @@ npm run dev
 
 ## 授权
 
-[AGPL-3.0-or-later](LICENSE)。图标来自 [Material Icons](https://github.com/google/material-design-icons)（Apache-2.0）；浏览器端编码器来自 [jSquash](https://github.com/jamsinclair/jSquash)（Apache-2.0，构建时复制，不在仓库中）。
+[AGPL-3.0-or-later](LICENSE)。图标来自 [Material Icons](https://github.com/google/material-design-icons)（Apache-2.0）；浏览器端编码器来自 [jSquash](https://github.com/jamsinclair/jSquash)（Apache-2.0），视频处理用 [Mediabunny](https://github.com/Vanilagy/mediabunny)（MPL-2.0），均在构建时复制，不在仓库中。

@@ -17,51 +17,39 @@
   <a href="../README.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <b>English</b>
 </p>
 
-## Why CF-ImgHub
+## Features
 
 ### Fast
 
-Images are served straight from Cloudflare's edge: edge cache first, then R2 on the same network. **No database and no third-party storage on the read path.**
-
-Deploys are fast too: no build step, live within seconds.
+Images are served straight from Cloudflare's edge: cache first, then R2 on a miss. No database and no third-party storage on the read path.
 
 ### Compression in the browser
 
-Images are transcoded in your own browser before upload; the server only stores the final bytes:
-
-- Auto mode converts to **AVIF**; you can also pick WebP / JPEG / PNG, or skip compression
-- Three quality levels and an optional max edge; multiple images are processed in parallel (Web Workers)
-- Keeps the original if the result is larger; images that are already AVIF / WebP / JXL are not recompressed
+Images are transcoded in your browser before upload; the server only stores the result. **AVIF** by default, or WebP / JPEG / PNG, or no compression; three quality levels and an optional longest-edge limit. If the result is larger, the original is kept.
 
 ### Motion Photos and HDR, never lost
 
-Ordinary compressors strip the video from a **Motion Photo** (a JPEG with a short clip inside) and the gain map from an **Ultra HDR** photo. CF-ImgHub **inspects each file's contents** before upload:
+Uploads are inspected by content to detect Motion Photos (Google Motion Photo, OPPO / OnePlus / realme O Live, including WeChat re-saves) and HDR photos (Ultra HDR / ISO 21496-1 gain maps). HDR photos, animations, SVG, ICO and videos are uploaded as-is; Motion Photos are split, compressed and reassembled in their original structure, so galleries still recognize them:
 
-- **Motion Photos** (Google Motion Photo, OPPO / OnePlus / realme O Live, including ones saved from WeChat) are taken apart in the browser, processed piece by piece and reassembled in the original layout, so phone galleries still treat them as Live:
+| Level | What it does |
+|------|------|
+| Original | Unchanged |
+| Slim | Strip phone-private data, lossless |
+| **Standard** (default) | Also recompress the still; HDR and the clip are kept, about half the size |
+| Compact | Also convert the motion clip to SDR |
+| Extreme | Also drop HDR and shrink the still to the longest edge |
 
-  | Level | What it does |
-  |-------|--------------|
-  | As-is | Untouched |
-  | Slim | Strips phone-private data; no quality loss |
-  | **Standard** (default) | Also recompresses the still; HDR and the clip are kept, about half the size |
-  | Compact | Also converts the clip to SDR (the still stays HDR) |
-  | Max | Also drops HDR and shrinks the still to the longest edge |
-
-  Parts that are already compressed (such as clips saved from WeChat) are skipped. Processed Motion Photos keep their EXIF, including location
-- **HDR photos** are uploaded as-is: Ultra HDR / ISO 21496-1 gain-map JPEG, HEIF / AVIF with a gain map
-- Animations (GIF, APNG, animated WebP / AVIF), SVG, ICO and video are uploaded as-is too
-
-The server never touches the bytes, so anything uploaded as-is downloads exactly as it was on your phone. Ultra HDR images light up in Chrome / Edge on HDR displays.
+The server never modifies file bytes.
 
 ## More features
 
-- **Upload, admin and settings pages**: Material 3 Expressive UI, light / dark, Simplified Chinese / Traditional Chinese / English
-- **Backgrounds**: up to 5 image URLs (from this host or any https site) as the sign-in / upload page background; several rotate
-- **Two roles**: uploaders need only a password and can undo uploads from the last 24 hours; admins can browse, search, preview, bulk delete and manage hotlink protection
-- **Hotlink protection**: one switch on the settings page, where allowed sites (subdomains included) are listed too; single images can be exempted on the admin page. Requests without a referrer (direct visits, RSS apps) always pass, and common web RSS readers pass by default (can be turned off)
-- **Readable file names**: `ImgHub-20261121-153045-k7q2.avif` (upload time + random code) by default, or keep the original name
-- **Script uploads**: call `/api/upload` with a Bearer token from your writing workflow
-- **Telegram storage (optional)**: on the settings page choose **R2 + Telegram backup** (every file is also posted, untouched, to a channel and read from there if it goes missing in R2) or **Telegram only** (no R2 space used; files over 19 MB are split, up to 100 MB each). Existing files can be backed up with one click, and deleting a file removes it from the channel too
+- **Two roles**: uploaders need only a password and can undo uploads from the last 24 hours; admins can browse, search, bulk-delete and change settings
+- **Hotlink protection**: custom allowed sites and per-image exceptions; direct visits and RSS readers are unaffected
+- **Readable names**: `ImgHub-20261121-153045-k7q2.avif` by default, or keep the original name
+- **Multiple domains, backgrounds, quick links**: all on the settings page
+- **Telegram storage (optional)**: as a backup for R2, or Telegram only
+- **Script uploads**: call `/api/upload` with a Bearer token
+- Material 3 Expressive UI, light / dark, 简体中文 / 繁體中文 / English
 
 ## Deploy
 
@@ -76,7 +64,7 @@ You need a Cloudflare account (the free plan is fine) and a GitHub account. To u
 2. Connect GitHub when asked. Cloudflare copies this repository into your GitHub account; pushing changes there redeploys automatically
 3. Keep the project name `cf-imghub` or pick your own
 4. Keep the new R2 bucket (you may rename it)
-5. Fill in the five secrets (each field has a description on the page):
+5. Fill in the five secrets:
 
    | Name | Value |
    |------|------|
@@ -157,4 +145,4 @@ npm run dev
 
 ## License
 
-[AGPL-3.0-or-later](../LICENSE). Icons from [Material Icons](https://github.com/google/material-design-icons) (Apache-2.0); in-browser encoders from [jSquash](https://github.com/jamsinclair/jSquash) (Apache-2.0, copied at build time, not in this repository).
+[AGPL-3.0-or-later](../LICENSE). Icons from [Material Icons](https://github.com/google/material-design-icons) (Apache-2.0); in-browser encoders from [jSquash](https://github.com/jamsinclair/jSquash) (Apache-2.0) and video processing by [Mediabunny](https://github.com/Vanilagy/mediabunny) (MPL-2.0), both copied at build time, not in this repository.

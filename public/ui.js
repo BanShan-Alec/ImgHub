@@ -39,7 +39,6 @@ const ICONS = {
   rss: 'M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20 5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z',
   left: 'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
   right: 'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
-  favorite: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
   error: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
 };
 
@@ -493,7 +492,7 @@ function showLogin(need) {
 
 // ---------- 站点外观：背景图、页脚 ----------
 export const GITHUB = 'https://github.com/TG-Twilight/CF-ImgHub';
-// 内建友情链接：始终显示，设置里不能移除；名称随界面语言
+// 内建快捷链接：始终显示在页脚，不出现在设置页；名称随界面语言
 export const BUILTIN_LINKS = [
   { i18n: 'siteAwads', url: 'https://awads.cc/' },
   { i18n: 'siteAwavenue', url: 'https://awavenue.top/' },
@@ -557,7 +556,7 @@ export async function backdrop(which) {
   }, (info.bg.interval || 10) * 1000 + BG_FADE);
 }
 
-// 页脚：项目名 + GitHub + 友情链接（内建两站在前）
+// 页脚：项目名 + GitHub + 快捷链接（内建两站在前）
 export async function footer() {
   let el = $('footer.foot');
   if (!el) {
@@ -588,7 +587,7 @@ export async function footer() {
   gh.className = 'gh';
   const label = document.createElement('span');
   label.className = 'foot-label';
-  label.append(icon('favorite', 'sm'), t('friendLinks'));
+  label.append(icon('link', 'sm'), t('friendLinks'));
   const friends = [...BUILTIN_LINKS.map((b) => ({ name: t(b.i18n), url: b.url })), ...(info.links ?? [])];
   el.replaceChildren(row('', brand, gh), row('friends', label, ...friends.map((l) => link(l.url, l.name))));
 }

@@ -1,7 +1,7 @@
 // 设置页（管理员）：防盗链与 RSS 阅读器放行、放行网站、链接域名、存储（R2 / Telegram）、登录页/上传页背景、页脚友情链接。
 // 每项改动立即保存（POST /api/settings），服务端负责规范化与校验
 import { t } from './i18n.js';
-import { $, BUILTIN_LINKS, api, errText, gate, icon, initLang, logout, setDomains, setShape, setSite, snack, topbarShadow } from './ui.js';
+import { $, api, errText, gate, icon, initLang, logout, setDomains, setShape, setSite, snack, topbarShadow } from './ui.js';
 
 const MAX_BG = 5;
 const INTERVALS = [5, 10, 20, 40];
@@ -63,13 +63,12 @@ const CHIPS = {
   allow: { box: '#sites', form: '#siteForm', input: '#siteInput', empty: 'sitesEmpty' },
   domains: { box: '#domains', form: '#domainForm', input: '#domainInput', empty: 'domainsEmpty' },
 };
-function chip(text, onRemove, extra) {
+function chip(text, onRemove) {
   const c = document.createElement('span');
   c.className = 'chip';
   const name = document.createElement('span');
   name.textContent = text;
   c.append(name);
-  if (extra) c.append(extra);
   if (onRemove) {
     const x = document.createElement('button');
     x.type = 'button';
@@ -78,8 +77,6 @@ function chip(text, onRemove, extra) {
     x.append(icon('close', 'sm'));
     x.onclick = () => onRemove(x);
     c.append(x);
-  } else {
-    c.classList.add('fixed');
   }
   return c;
 }
@@ -106,18 +103,11 @@ for (const [field, c] of Object.entries(CHIPS)) {
   };
 }
 
-// ---------- 友情链接：内建两站固定在前、不能移除；自定义的可删 ----------
+// ---------- 快捷链接：内建两站只显示在页脚，这里只管自定义的 ----------
 function renderLinks() {
   const box = $('#links');
   box.replaceChildren();
-  for (const b of BUILTIN_LINKS) {
-    const tag = document.createElement('span');
-    tag.className = 'chip-tag';
-    tag.textContent = t('builtin');
-    const c = chip(t(b.i18n), null, tag);
-    c.title = b.url;
-    box.append(c);
-  }
+  if (!settings.links.length) box.append(emptyNote('linksEmpty'));
   for (const l of settings.links) {
     const c = chip(l.name, (x) => save({ links: settings.links.filter((v) => v !== l) }, x));
     c.title = l.url;
