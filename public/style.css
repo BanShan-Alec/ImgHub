@@ -580,6 +580,10 @@ dialog.detail { width: min(760px, calc(100vw - 24px)); padding: 0; overflow: hid
 @media (max-width: 600px) { .link-add { grid-template-columns: 1fr auto; } .link-add .search:first-child { grid-column: 1 / -1; } }
 .opt.dim { opacity: 0.5; }
 .group[aria-busy] { opacity: 0.6; pointer-events: none; }
+.group > button:disabled { opacity: 0.38; cursor: default; background: var(--surface-highest); }
+#storageMode > button { white-space: normal; height: auto; min-height: 40px; padding: 6px 10px; line-height: 1.25; }
+#tgBackup .btn[aria-busy] { opacity: 0.6; pointer-events: none; }
+#tgBackup .btn:disabled { opacity: 0.38; }
 
 .bg-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .bg-item { position: relative; aspect-ratio: 16 / 10; border-radius: var(--r-l); overflow: hidden; background: var(--surface-highest); }

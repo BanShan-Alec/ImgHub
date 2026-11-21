@@ -4,6 +4,7 @@
 // 防盗链语义：hotlink=true 时全局开启；allow 是后台填的放行网站（含子域）；exempt 里的 key 单独放行（单张开关）。
 // domains：本图床绑定的其他域名（只认完整主机名）。上传页/管理页可选用哪个域名生成链接，防盗链也把它们当作自身。
 // rss：是否放行内建的网页版 RSS 阅读器名单（默认开）。
+// storage：新上传存到哪里：r2（默认）/ r2+tg（R2 + Telegram 备份）/ tg（只存 Telegram）；没设 TG_BOT_TOKEN、TG_CHAT_ID 时一律按 r2。
 // bg：登录页 / 上传页背景，urls 是图片地址（https 完整地址或本站 /file/… 路径，最多 5 个，多于 1 个时轮播），interval 为轮播秒数。
 // 旧版存的是 keys（本图床的 key），读取时自动转成 /file/<key>。
 // links：页脚里额外的友情链接 [{name, url}]（秋风塬上、秋风广告规则两站是内建的，写死在前端 ui.js，不能移除）。bg 与 links 登录前就要用，经 GET /api/site 公开（见 siteInfo）。
@@ -22,7 +23,9 @@ const DEFAULTS = {
   domains: [],
   bg: { urls: [], login: true, upload: true, interval: 10 },
   links: [],
+  storage: 'r2',
 };
+export const STORAGE_MODES = ['r2', 'r2+tg', 'tg'];
 export const MAX_SITES = 200;
 export const MAX_DOMAINS = 20;
 export const MAX_BG = 5;
@@ -76,6 +79,7 @@ function normalize(d) {
       interval: BG_INTERVALS.includes(bg.interval) ? bg.interval : DEFAULTS.bg.interval,
     },
     links: Array.isArray(d?.links) ? d.links.map(normLink).filter(Boolean).slice(0, MAX_LINKS) : [],
+    storage: STORAGE_MODES.includes(d?.storage) ? d.storage : DEFAULTS.storage,
   };
 }
 
@@ -124,7 +128,7 @@ export function normSite(input) {
 }
 
 export function publicSettings(s) {
-  return { hotlink: s.hotlink, rss: s.rss, allow: s.allow, exempt: s.exempt, domains: s.domains, bg: s.bg, links: s.links };
+  return { hotlink: s.hotlink, rss: s.rss, allow: s.allow, exempt: s.exempt, domains: s.domains, bg: s.bg, links: s.links, storage: s.storage };
 }
 
 // 不登录也能读的部分（登录页背景、页脚）

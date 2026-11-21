@@ -51,6 +51,7 @@ The server never touches the bytes, so a download matches the file on your phone
 - **Hotlink protection**: one switch on the settings page, where allowed sites (subdomains included) are listed too; single images can be exempted on the admin page. Requests without a referrer (direct visits, RSS apps) always pass, and common web RSS readers pass by default (can be turned off)
 - **Readable file names**: `ImgHub-20261121-153045-k7q2.avif` (upload time + random code) by default, or keep the original name
 - **Script uploads**: call `/api/upload` with a Bearer token from your writing workflow
+- **Telegram storage (optional)**: on the settings page choose **R2 + Telegram backup** (every file is also posted, untouched, to a channel and read from there if it goes missing in R2) or **Telegram only** (no R2 space used; files over 19 MB are split, up to 100 MB each). Existing files can be backed up with one click, and deleting a file removes it from the channel too
 
 ## Deploy
 
@@ -105,6 +106,14 @@ Everything lives under **Workers & Pages** → `cf-imghub` → **Settings** → 
 - Changing `SESSION_SECRET` signs everyone out; changing a password only signs out that role
 
 Several domains: add more custom domains under the Worker's **Settings → Domains & Routes**; links follow the domain you opened the page on. List them under **Link domains** on the settings page and a globe button appears in the top bar of the upload and admin pages to switch which domain links use.
+
+Telegram storage (optional):
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and note the token
+2. Create a channel (private is fine) and add the bot as an admin with at least **Post messages** and **Delete messages**
+3. Find the channel id: open the channel in [Telegram Web](https://web.telegram.org/a/); the `-100…` number after `#` in the address bar is the id
+4. Under **Variables and Secrets** add two secrets, `TG_BOT_TOKEN` (the bot token) and `TG_CHAT_ID` (the channel id), then **Deploy**
+5. Open **Storage** on the settings page and choose where new uploads go; click **Back up** to copy existing files
 
 ### Troubleshooting
 

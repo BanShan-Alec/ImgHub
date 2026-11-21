@@ -2,7 +2,8 @@
 // 两种 key 都带时间：
 //   保持原名  <13 位毫秒时间戳>_<文件名>          （旧图床的链接也是这个格式）
 //   规范命名  ImgHub-<YYYYMMDD>-<HHmmss>-<随机>.<扩展名>   （时间是 UTC+8）
-// 目前只有 R2 绑定（同账户）；第二个账户的桶（S3 API）、Telegram 以后在这里加类型。
+// 目前只有 R2 绑定（同账户）；第二个账户的桶（S3 API）以后在这里加类型。
+// Telegram 不在路由表里：只存 Telegram 的文件在 R2 留一个占位对象，见 telegram.js。
 
 export const BRAND = 'ImgHub';
 const STD_KEY = new RegExp(`^${BRAND}-(\\d{4})(\\d{2})(\\d{2})-(\\d{2})(\\d{2})(\\d{2})-`);

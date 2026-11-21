@@ -1,8 +1,9 @@
-// GET/HEAD /file/<key>：Cache API → R2 → 回源旧图床（取回后写入 R2）
+// GET/HEAD /file/<key>：Cache API → R2（占位对象则从 Telegram 取）→ Telegram 备份 → 回源旧图床（取回后写入 R2）
 // 原样返回字节，不做任何转换；no-transform 让 Polish 等功能不处理图片（HDR 增益图要靠这个保住）
 import { mimeFromName } from './mime.js';
-import { storesFor, writeStore } from './stores.js';
+import { configStore, storesFor, writeStore } from './stores.js';
 import { getSettings } from './settings.js';
+import { SIDECAR, isStub, realSize, tgReady, tgStream } from './telegram.js';
 
 const LONG_CACHE = 'public, max-age=31536000, immutable, no-transform';
 const MISS_CACHE = 'public, max-age=60';
@@ -39,40 +40,57 @@ export async function serveFile(request, env, ctx, url) {
   const hit = await cache.match(new Request(cacheUrl, { headers: conditionalHeaders(request) }));
   if (hit) return request.method === 'HEAD' ? withoutBody(hit) : hit;
 
+  const bg = { ctx, cache, cacheUrl };
   for (const store of storesFor(env, key)) {
-    const res = await fromStore(store.bucket, key, request);
+    const res = await fromStore(env, store.bucket, key, request, bg);
     if (res) {
       if (res.status === 200 && request.method === 'GET') maybeCache(ctx, cache, cacheUrl, res);
       return res;
     }
   }
 
+  // R2 里没有、但 Telegram 里有备份（R2 对象被误删等）：直接从 Telegram 读
+  const backup = await fromBackup(env, key, request, bg);
+  if (backup) {
+    if (backup.status === 200 && request.method === 'GET') maybeCache(ctx, cache, cacheUrl, backup);
+    return backup;
+  }
+
   return fromLegacy(request, env, ctx, key, cache, cacheUrl);
 }
 
-// 读 R2：找不到返回 null；支持 Range、If-None-Match/If-Modified-Since
-async function fromStore(bucket, key, request) {
+// 读 R2：找不到返回 null；支持 Range、If-None-Match/If-Modified-Since。
+// 占位对象（只存 Telegram 的文件）正文是清单，按清单去 Telegram 取
+async function fromStore(env, bucket, key, request, bg) {
   if (request.method === 'HEAD') {
     const obj = await bucket.head(key);
-    return obj && new Response(null, { status: 200, headers: objectHeaders(obj, key) });
+    if (!obj) return null;
+    const headers = objectHeaders(obj, key);
+    if (isStub(obj)) headers.set('Content-Length', String(realSize(obj)));
+    return new Response(null, { status: 200, headers });
   }
 
   let obj;
+  let err;
   try {
     obj = await bucket.get(key, { range: request.headers, onlyIf: request.headers });
-  } catch (err) {
-    // 范围越界等情况 R2 会抛错
+  } catch (e) {
+    err = e; // 范围越界等情况 R2 会抛错
+  }
+  // 占位对象：Range 指的是真实文件，不是清单，所以重新整个读出清单
+  if (err || (isStub(obj) && obj.range && request.headers.has('Range'))) {
     const head = await bucket.head(key);
     if (!head) return null;
-    if (request.headers.has('Range')) {
+    if (isStub(head)) obj = await bucket.get(key, { onlyIf: request.headers });
+    else if (request.headers.has('Range')) {
       return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${head.size}` } });
-    }
-    throw err;
+    } else throw err;
   }
   if (obj === null) return null;
 
   const headers = objectHeaders(obj, key);
   if (!('body' in obj)) return new Response(null, { status: 304, headers }); // 条件请求命中
+  if (isStub(obj)) return fromTelegram(env, request, headers, await obj.json(), bg);
 
   if (obj.range && request.headers.has('Range')) {
     const { start, end } = rangeOf(obj.range, obj.size);
@@ -82,6 +100,62 @@ async function fromStore(bucket, key, request) {
   }
   headers.set('Content-Length', String(obj.size));
   return new Response(obj.body, { status: 200, headers });
+}
+
+// Telegram 备份的清单与原对象的 httpMetadata 一起存在主桶 .tg/<key>
+async function fromBackup(env, key, request, bg) {
+  if (!tgReady(env)) return null;
+  const side = await configStore(env).bucket.get(SIDECAR + key);
+  if (!side) return null;
+  const manifest = await side.json();
+  const headers = objectHeaders(side, key);
+  if (request.method === 'HEAD') {
+    headers.set('Content-Length', String(manifest.size));
+    return new Response(null, { status: 200, headers });
+  }
+  return fromTelegram(env, request, headers, manifest, bg);
+}
+
+async function fromTelegram(env, request, headers, manifest, bg) {
+  if (!tgReady(env)) return plain(503, 'Telegram storage not configured');
+  const size = manifest.size;
+  const range = parseRange(request.headers.get('Range'), size);
+  if (range === false) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } });
+  const { start, end } = range ?? { start: 0, end: size - 1 };
+  if (range) headers.set('Content-Range', `bytes ${start}-${end}/${size}`);
+  headers.set('Content-Length', String(end - start + 1));
+  let body;
+  try {
+    body = await tgStream(env, manifest, start, end);
+  } catch (err) {
+    console.warn(JSON.stringify({ event: 'tg-read-failed', error: err.message }));
+    return plain(502, 'Telegram unavailable');
+  }
+  // Range 回应不进缓存：后台把整个文件取一遍放进缓存，之后的 Range 请求由 Cache API 直接切
+  if (range && size <= CACHE_PUT_LIMIT) {
+    const full = new Headers(headers);
+    full.delete('Content-Range');
+    full.set('Content-Length', String(size));
+    bg.ctx.waitUntil(
+      tgStream(env, manifest)
+        .then((b) => bg.cache.put(new Request(bg.cacheUrl), new Response(b, { status: 200, headers: full })))
+        .catch((err) => console.warn('tg cache fill failed', err.message)),
+    );
+  }
+  return new Response(body, { status: range ? 206 : 200, headers });
+}
+
+// 只认单段 bytes=a-b / a- / -n。没有或看不懂返回 null（按整个文件回应），无法满足返回 false
+function parseRange(h, size) {
+  const m = h && /^bytes=(\d*)-(\d*)$/.exec(h.trim());
+  if (!m || (!m[1] && !m[2]) || !size) return null;
+  if (!m[1]) {
+    const n = Number(m[2]);
+    return n ? { start: Math.max(0, size - n), end: size - 1 } : false;
+  }
+  const start = Number(m[1]);
+  const end = m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+  return start < size && start <= end ? { start, end } : false;
 }
 
 // 回源旧图床：取整个文件 → 写入当前桶 → 再按原请求（可能带 Range）从 R2 返回
@@ -121,7 +195,7 @@ async function fromLegacy(request, env, ctx, key, cache, cacheUrl) {
   });
   console.log(JSON.stringify({ event: 'legacy-migrated', key, size: body.byteLength, store: store.binding }));
 
-  const res = await fromStore(store.bucket, key, request);
+  const res = await fromStore(env, store.bucket, key, request, { ctx, cache, cacheUrl });
   if (res && res.status === 200 && request.method === 'GET') maybeCache(ctx, cache, cacheUrl, res);
   return res ?? notFound();
 }

@@ -37,4 +37,5 @@
   //   UPLOAD_PASSWORD  上传页密码
   //   ADMIN_USER / ADMIN_PASSWORD  后台管理账号
   //   UPLOAD_TOKEN     可选，本机脚本用 Authorization: Bearer 上传
+  //   TG_BOT_TOKEN / TG_CHAT_ID  可选，Telegram 存储（bot token 与频道 id）；设好后在设置页选存储方式
 }

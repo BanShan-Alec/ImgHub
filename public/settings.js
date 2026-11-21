@@ -1,4 +1,4 @@
-// 设置页（管理员）：防盗链与 RSS 阅读器放行、放行网站、链接域名、登录页/上传页背景、页脚友情链接。
+// 设置页（管理员）：防盗链与 RSS 阅读器放行、放行网站、链接域名、存储（R2 / Telegram）、登录页/上传页背景、页脚友情链接。
 // 每项改动立即保存（POST /api/settings），服务端负责规范化与校验
 import { t } from './i18n.js';
 import { $, BUILTIN_LINKS, api, errText, gate, icon, initLang, logout, setDomains, setShape, setSite, snack, topbarShadow } from './ui.js';
@@ -45,6 +45,7 @@ function apply(s) {
   renderChips('domains');
   renderBg();
   renderLinks();
+  renderStorage();
   setDomains(s.domains);
   setSite({ bg: s.bg, links: s.links });
 }
@@ -219,6 +220,85 @@ $('#bgForm').onsubmit = async (e) => {
   if (await save({ bg: { urls: next } }, $('#bgForm button'))) input.value = '';
 };
 
+// ---------- 存储：仅 R2 / R2 + Telegram 备份 / 仅 Telegram ----------
+const MODES = [
+  ['r2', 'modeR2', 'hint_r2'],
+  ['r2+tg', 'modeBackup', 'hint_r2tg'],
+  ['tg', 'modeTg', 'hint_tg'],
+];
+function renderStorage() {
+  const ready = settings.tgReady;
+  const group = $('#storageMode');
+  group.replaceChildren(
+    ...MODES.map(([m, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t(label);
+      b.classList.toggle('on', m === settings.storage);
+      b.disabled = !ready && m !== 'r2';
+      b.onclick = () => m !== settings.storage && save({ storage: m }, group);
+      return b;
+    }),
+  );
+  $('#storageHint').textContent = ready ? t(MODES.find(([m]) => m === settings.storage)[2]) : t('tgNotReady');
+  $('#tgBackup').hidden = !ready;
+  renderTg();
+}
+
+// 补备份：取未备份的 key，每次发 3 个；遇到限流按 Telegram 给的秒数等待后继续
+let tg = null;
+let progress = null;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function renderTg() {
+  const note = $('#tgBackupNote');
+  if (progress) note.textContent = t(progress.wait ? 'tgBackupWait' : 'tgBackupProgress', progress);
+  else note.textContent = tg ? t('tgBackupState', { backed: tg.backed, pending: tg.pending.length, tgOnly: tg.tgOnly }) : '';
+  $('#tgBackupBtn').disabled = Boolean(progress) || !tg?.pending.length;
+}
+async function loadTg() {
+  if (!settings?.tgReady) return;
+  const r = await api('/api/tg/status');
+  if (r.ok) tg = r.body;
+  renderTg();
+}
+async function runBackup() {
+  if (progress || !tg?.pending.length) return;
+  const queue = [...tg.pending];
+  progress = { done: 0, total: queue.length };
+  let ok = 0;
+  let failed = 0;
+  $('#tgBackupBtn').setAttribute('aria-busy', 'true');
+  renderTg();
+  while (queue.length) {
+    const batch = queue.splice(0, 3);
+    const r = await api('/api/tg/backup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keys: batch }) });
+    if (!r.ok) {
+      snack(errText(r), { error: true });
+      break;
+    }
+    const res = r.body.results;
+    ok += res.filter((x) => x.status !== 'failed').length;
+    failed += res.filter((x) => x.status === 'failed').length;
+    progress.done += res.length;
+    queue.unshift(...batch.slice(res.length)); // 限流时没处理到的放回队首
+    if (r.body.retryAfter) {
+      for (let s = r.body.retryAfter + 1; s > 0; s--) {
+        progress.wait = true;
+        progress.s = s;
+        renderTg();
+        await sleep(1000);
+      }
+      progress.wait = false;
+    }
+    renderTg();
+  }
+  progress = null;
+  $('#tgBackupBtn').removeAttribute('aria-busy');
+  snack(t('tgBackupDone', { n: ok, failed }), { error: failed > 0 });
+  loadTg();
+}
+$('#tgBackup').onclick = runBackup;
+
 // ---------- 启动 ----------
 let reauthing = null;
 function reauth() {
@@ -237,6 +317,7 @@ async function load() {
     return snack(errText(r), { error: true });
   }
   apply(r.body);
+  loadTg();
 }
 
 await gate('admin');
