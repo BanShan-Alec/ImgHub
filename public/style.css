@@ -94,7 +94,8 @@ svg.icon { width: 24px; height: 24px; fill: currentColor; flex: none; display: b
 
 /* ---------- 按钮 ---------- */
 .btn {
-  --h: 40px; --rad: var(--r-full); --rad-pressed: var(--r-m);
+  /* 胶囊圆角用高度的一半而不是 999px：弹簧曲线会冲过头约 10%，999px → 12px 时会冲到负值（被当成 0），按下瞬间闪成尖角 */
+  --h: 40px; --rad: calc(var(--h) / 2); --rad-pressed: var(--r-m);
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: var(--h); padding: 0 20px; border: 0; border-radius: var(--rad);
   background: transparent; color: var(--primary);
@@ -133,12 +134,12 @@ svg.icon { width: 24px; height: 24px; fill: currentColor; flex: none; display: b
   border-radius: var(--r-s);
   transition: border-radius var(--d-fast) var(--spring), background-color 200ms var(--ease-fx), color 200ms var(--ease-fx), flex-grow var(--d-default) var(--spring);
 }
-.group > button:first-child { border-radius: var(--r-full) var(--r-s) var(--r-s) var(--r-full); }
-.group > button:last-child { border-radius: var(--r-s) var(--r-full) var(--r-full) var(--r-s); }
-.group > button:only-child { border-radius: var(--r-full); }
+.group > button:first-child { border-radius: 20px var(--r-s) var(--r-s) 20px; }
+.group > button:last-child { border-radius: var(--r-s) 20px 20px var(--r-s); }
+.group > button:only-child { border-radius: 20px; }
 .group > button:hover { background: color-mix(in srgb, var(--on-surface) 8%, var(--surface-highest)); }
 .group > button:active { border-radius: var(--r-xs); }
-.group > button.on { background: var(--primary); color: var(--on-primary); border-radius: var(--r-full); flex-grow: 1.6; }
+.group > button.on { background: var(--primary); color: var(--on-primary); border-radius: 20px; flex-grow: 1.6; }
 .group > button.on::before { content: "✓ "; }
 .group.dense > button.on::before { content: none; }
 
@@ -195,7 +196,7 @@ svg.icon { width: 24px; height: 24px; fill: currentColor; flex: none; display: b
   background: transparent; box-shadow: inset 0 0 0 1px var(--outline-variant); color: var(--on-surface-variant); font-weight: 600; font-size: 13px;
   transition: border-radius var(--d-fast) var(--spring), background-color 200ms;
 }
-.filters button.on { background: var(--secondary-container); color: var(--on-secondary-container); box-shadow: none; border-radius: var(--r-full); }
+.filters button.on { background: var(--secondary-container); color: var(--on-secondary-container); box-shadow: none; border-radius: 16px; }
 
 /* ---------- 形状变形（clip-path 由 ui.js 生成） ---------- */
 .morph { --bg: var(--primary); position: relative; isolation: isolate; display: grid; place-items: center; flex: none; }
@@ -254,7 +255,7 @@ svg.icon { width: 24px; height: 24px; fill: currentColor; flex: none; display: b
   border-radius: var(--r-m); background: transparent; cursor: pointer; text-align: left; font-weight: 500;
   transition: border-radius var(--d-fast) var(--spring);
 }
-.menu button.on { background: var(--tertiary-container); color: var(--on-tertiary-container); border-radius: var(--r-full); }
+.menu button.on { background: var(--tertiary-container); color: var(--on-tertiary-container); border-radius: 22px; }
 @keyframes pop { from { opacity: 0; transform: scale(0.85) translateY(-6px); } }
 
 /* ---------- 提示条 ---------- */
@@ -303,7 +304,7 @@ body.locked > :not(.gate):not(.snackbar):not(.backdrop):not(.foot) { display: no
 .gate .emblem { position: relative; width: 104px; height: 104px; margin: 0 auto 4px; animation: leaf-sway 6s ease-in-out infinite alternate; }
 .gate .emblem .logo { width: 100%; height: 100%; }
 .gate .emblem .badge {
-  position: absolute; right: -8px; top: -6px; width: 40px; height: 40px; border-radius: var(--r-full);
+  position: absolute; right: -8px; top: -6px; width: 40px; height: 40px; border-radius: 20px;
   display: grid; place-items: center; background: var(--primary-container); color: var(--on-primary-container);
   box-shadow: 0 0 0 4px var(--surface-lowest);
   transition: background-color 200ms, border-radius var(--d-default) var(--spring), transform var(--d-default) var(--spring);
@@ -483,7 +484,7 @@ body:has(.ftb) .page { padding-bottom: 96px; }
 .tile .cap b { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile .cap span { opacity: 0.85; }
 .tile .check {
-  position: absolute; top: 10px; left: 10px; width: 30px; height: 30px; border-radius: var(--r-full); border: 0; padding: 0;
+  position: absolute; top: 10px; left: 10px; width: 30px; height: 30px; border-radius: 15px; border: 0; padding: 0;
   display: grid; place-items: center; cursor: pointer; color: transparent;
   background: rgb(0 0 0 / 0.35); box-shadow: inset 0 0 0 2px #fff;
   opacity: 0; transform: scale(0.6);
