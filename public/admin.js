@@ -1,6 +1,6 @@
-// 管理页：管理员登录 → 列出桶内全部文件 → 搜索、筛选、预览、复制、批量删除
+// 管理页：管理员登录 → 列出桶内全部文件 → 搜索、筛选、预览、复制、批量删除。其余设置在设置页（settings.js）
 import { t } from './i18n.js';
-import { $, api, confirmBox, copyText, errText, gate, icon, initLang, linkOf, loader, logout, setDomains, setShape, size, snack, snippet, topbarShadow, when } from './ui.js';
+import { $, api, confirmBox, copyText, errText, gate, icon, initLang, linkOf, loader, logout, setDomains, setShape, size, snack, snippet, timeOf, topbarShadow, when } from './ui.js';
 
 const PAGE = 120; // 每次渲染的卡片数，避免文件多时 DOM 过大
 let all = []; // 新的在前
@@ -35,66 +35,9 @@ function applySettings(s) {
   $('#exemptCount').textContent = t('exemptN', { n: exempt.size });
   for (const el of document.querySelectorAll('.tile')) el.classList.toggle('exempt', exempt.has(el.dataset.key));
   if (current) setToggle($('[data-exempt]', dlg), exempt.has(current.key));
-  renderChips('allow');
-  renderChips('domains');
   setDomains(s.domains);
 }
 
-// 放行网站（allow）与链接域名（domains）：输入胶囊（chip），× 移除；保存整份名单，服务端负责规范化与校验
-const CHIPS = {
-  allow: { box: '#sites', form: '#siteForm', input: '#siteInput', empty: 'sitesEmpty' },
-  domains: { box: '#domains', form: '#domainForm', input: '#domainInput', empty: 'domainsEmpty' },
-};
-function renderChips(field) {
-  const box = $(CHIPS[field].box);
-  box.replaceChildren();
-  if (!settings[field].length) {
-    const p = document.createElement('span');
-    p.className = 'chips-empty';
-    p.textContent = t(CHIPS[field].empty);
-    box.append(p);
-  }
-  for (const site of settings[field]) {
-    const c = document.createElement('span');
-    c.className = 'chip';
-    const name = document.createElement('span');
-    name.textContent = site;
-    const x = document.createElement('button');
-    x.type = 'button';
-    x.className = 'chip-x state';
-    x.title = x.ariaLabel = t('removeSite', { site });
-    x.append(icon('close', 'sm'));
-    x.onclick = () => saveList(field, settings[field].filter((d) => d !== site), x);
-    c.append(name, x);
-    box.append(c);
-  }
-}
-async function saveList(field, list, btn) {
-  if (saving) return false;
-  saving = true;
-  btn.setAttribute('aria-busy', 'true');
-  const r = await api('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: list }) });
-  saving = false;
-  btn.removeAttribute('aria-busy');
-  if (!r.ok) {
-    if (r.status === 401) return reauth();
-    snack(r.body?.error === 'bad_site' ? t('e_bad_site', { site: r.body.site }) : errText(r), { error: true });
-    return false;
-  }
-  applySettings(r.body);
-  snack(t('saved'));
-  return true;
-}
-for (const [field, c] of Object.entries(CHIPS)) {
-  $(c.form).onsubmit = async (e) => {
-    e.preventDefault();
-    const input = $(c.input);
-    // 允许一次贴多个：空格、逗号、换行分隔
-    const add = input.value.split(/[\s,，、]+/).filter(Boolean);
-    if (!add.length) return input.focus();
-    if (await saveList(field, [...settings[field], ...add], $(`${c.form} button`))) input.value = '';
-  };
-}
 // 整张卡片 / 整行都可以点（开关本身的点击会冒泡上来，所以开关上不另外绑事件）；保存期间忽略重复点击
 let saving = false;
 async function saveSetting(path, body, btn) {
@@ -116,14 +59,6 @@ $('.stat.s4').onclick = () => saveSetting('/api/settings', { hotlink: !settings.
 // ---------- 数据 ----------
 // 规范命名的 key 本身就是显示名；保持原名的去掉时间戳前缀
 const nameOf = (o) => o.key.replace(/^\d{13}_/, '');
-// 上传时间：两种 key 都带时间（规范名是 UTC+8 的钟面），解析不出就用 R2 的上传时间
-function timeOf(o) {
-  const ts = /^(\d{13})_/.exec(o.key)?.[1];
-  if (ts) return Number(ts);
-  const m = /^ImgHub-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})-/.exec(o.key);
-  if (m) return Date.UTC(+m[1], m[2] - 1, +m[3], m[4] - 8, +m[5], +m[6]);
-  return Date.parse(o.uploaded) || 0;
-}
 const kindOf = (o) => (/^image\//.test(o.contentType) ? 'image' : /^video\//.test(o.contentType) ? 'video' : 'other');
 
 async function load() {

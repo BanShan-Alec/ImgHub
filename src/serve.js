@@ -9,8 +9,8 @@ const MISS_CACHE = 'public, max-age=60';
 const CACHE_PUT_LIMIT = 512 * 1024 * 1024; // Cache API 单个对象上限
 const LEGACY_LIMIT = 100 * 1024 * 1024; // 回源迁移时整个读进内存，超过就只转发不迁移
 // 防盗链内建放行的网页版 RSS 阅读器（含所有子域名）：它们会带自己域名的 Referer（App 版通常不带，本来就放行）。
-// 博客等其他网站由管理页填写（设置里的 allow）；图床自己的域名另外放行
-const RSS_READERS = [
+// 设置里 rss=false 时不放行这份名单。博客等其他网站由设置页填写（allow）；图床自己的域名另外放行
+export const RSS_READERS = [
   'feedly.com', 'inoreader.com', 'innoreader.com', 'newsblur.com', 'theoldreader.com', 'feedbin.com', 'bazqux.com',
   'follow.is', 'folo.is', 'feeder.co', 'netvibes.com', 'qireader.com', 'commafeed.com', 'readwise.io', 'feedspot.com',
 ];
@@ -158,7 +158,7 @@ function refererAllowed(request, url, settings) {
   if (host === url.hostname) return true;
   if (settings.domainSet.has(host)) return true;
   const match = (d) => host === d || host.endsWith(`.${d}`);
-  return settings.allow.some(match) || RSS_READERS.some(match);
+  return settings.allow.some(match) || (settings.rss && RSS_READERS.some(match));
 }
 
 function rangeOf(range, size) {

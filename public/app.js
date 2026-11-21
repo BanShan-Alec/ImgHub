@@ -234,7 +234,7 @@ let reauth = null;
 function expired() {
   if (reauth) return;
   snack(t('sessionExpired'), { error: true });
-  reauth = gate('upload').then((s) => {
+  reauth = gate('upload', { bg: 'upload' }).then((s) => {
     session = s;
     reauth = null;
   });
@@ -345,5 +345,5 @@ $('#clearHistory').onclick = () => {
 };
 
 // ---------- 启动：先过登录闸门 ----------
-session = await gate('upload');
+session = await gate('upload', { bg: 'upload' });
 renderHistory();

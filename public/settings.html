@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#fff8f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a110e" media="(prefers-color-scheme: dark)">
+<title>CF-ImgHub</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/settings.js"></script>
+</head>
+<body class="locked" data-title="settingsTitle">
+<header class="topbar">
+  <a class="brand" href="/settings"><i data-icon="logo" class="mark"></i><span class="name">CF-ImgHub</span><span class="tag" data-i18n="tagSettings"></span></a>
+  <button class="btn icon state" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
+  <a class="btn icon state gh-top" href="https://github.com/TG-Twilight/CF-ImgHub" target="_blank" rel="noopener" data-i18n-tip="github"><i data-icon="github"></i></a>
+  <a class="btn icon state" href="/admin" data-i18n-tip="toAdmin"><i data-icon="dashboard"></i></a>
+  <a class="btn icon state" href="/" data-i18n-tip="toUpload"><i data-icon="upload"></i></a>
+  <button class="btn icon state" id="logout" data-i18n-tip="logout"><i data-icon="logout"></i></button>
+</header>
+
+<main class="page narrow">
+  <section class="panel">
+    <div class="panel-head">
+      <span class="morph ph-icon" data-shape="cookie9"><i data-icon="shield"></i></span>
+      <span><h2 class="title-l" data-i18n="secHotlink"></h2><small data-i18n="secHotlinkNote"></small></span>
+    </div>
+    <div class="setting" data-flag="hotlink">
+      <span><b data-i18n="hotlink"></b><small data-i18n="hotlinkNote"></small></span>
+      <button class="toggle" type="button" role="switch" aria-checked="false" data-i18n-tip="hotlink"><span class="thumb"></span></button>
+    </div>
+    <div class="setting" data-flag="rss">
+      <span><b data-i18n="rssTitle"></b><small id="rssNote"></small></span>
+      <button class="toggle" type="button" role="switch" aria-checked="false" data-i18n-tip="rssTitle"><span class="thumb"></span></button>
+    </div>
+    <div class="sub-head"><b data-i18n="sitesTitle"></b><small data-i18n="sitesNote"></small></div>
+    <div class="chips" id="sites"></div>
+    <form class="site-add" id="siteForm">
+      <label class="search"><i data-icon="link"></i><input id="siteInput" data-i18n-ph="sitesPh" autocomplete="off" spellcheck="false" inputmode="url"></label>
+      <button class="btn tonal state" type="submit"><i data-icon="add"></i><span class="lbl" data-i18n="add"></span></button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="morph ph-icon t2" data-shape="clover4"><i data-icon="public"></i></span>
+      <span><h2 class="title-l" data-i18n="domainsTitle"></h2><small data-i18n="domainsNote"></small></span>
+    </div>
+    <div class="chips" id="domains"></div>
+    <form class="site-add" id="domainForm">
+      <label class="search"><i data-icon="link"></i><input id="domainInput" data-i18n-ph="domainsPh" autocomplete="off" spellcheck="false" inputmode="url"></label>
+      <button class="btn tonal state" type="submit"><i data-icon="add"></i><span class="lbl" data-i18n="add"></span></button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="morph ph-icon t3" data-shape="burst12"><i data-icon="wallpaper"></i></span>
+      <span><h2 class="title-l" data-i18n="bgTitle"></h2><small data-i18n="bgNote"></small></span>
+    </div>
+    <div class="bg-list" id="bgList"></div>
+    <div class="setting" data-bg="login">
+      <span><b data-i18n="bgLogin"></b><small data-i18n="bgLoginNote"></small></span>
+      <button class="toggle" type="button" role="switch" aria-checked="false" data-i18n-tip="bgLogin"><span class="thumb"></span></button>
+    </div>
+    <div class="setting" data-bg="upload">
+      <span><b data-i18n="bgUpload"></b><small data-i18n="bgUploadNote"></small></span>
+      <button class="toggle" type="button" role="switch" aria-checked="false" data-i18n-tip="bgUpload"><span class="thumb"></span></button>
+    </div>
+    <div class="opt" id="intervalField">
+      <span class="label" data-i18n="bgInterval"></span>
+      <div class="group" id="bgInterval"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="morph ph-icon t4" data-shape="pentagon"><i data-icon="favorite"></i></span>
+      <span><h2 class="title-l" data-i18n="linksTitle"></h2><small data-i18n="linksNote"></small></span>
+    </div>
+    <div class="chips" id="links"></div>
+    <form class="site-add link-add" id="linkForm">
+      <label class="search"><i data-icon="favorite"></i><input id="linkName" data-i18n-ph="linkName" autocomplete="off" maxlength="40"></label>
+      <label class="search"><i data-icon="link"></i><input id="linkUrl" data-i18n-ph="linkUrl" autocomplete="off" spellcheck="false" inputmode="url"></label>
+      <button class="btn tonal state" type="submit"><i data-icon="add"></i><span class="lbl" data-i18n="add"></span></button>
+    </form>
+  </section>
+</main>
+
+<dialog class="dlg picker" id="picker">
+  <div class="picker-head">
+    <h3 class="title-l" data-i18n="bgPickTitle"></h3>
+    <span class="count" id="pickCount"></span>
+  </div>
+  <label class="search"><i data-icon="search"></i><input id="pickQ" type="search" data-i18n-ph="search" autocomplete="off" spellcheck="false"></label>
+  <div class="grid" id="pickGrid"></div>
+  <div class="actions"><button class="btn state" value="cancel" data-i18n="cancel"></button><button class="btn filled state" value="done" data-i18n="done"></button></div>
+</dialog>
+</body>
+</html>

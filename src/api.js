@@ -2,7 +2,8 @@
 // 错误只返回代码（error 字段），由前端按语言翻译
 import { pickContentType } from './mime.js';
 import { allStores, BRAND, keyTime, writeStore } from './stores.js';
-import { MAX_DOMAINS, MAX_SITES, getSettings, normSite, publicSettings, saveSettings } from './settings.js';
+import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, getSettings, isFileKey, normLink, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
+import { RSS_READERS } from './serve.js';
 import { hasRole, identify, login, logoutCookie, sameOrigin } from './auth.js';
 
 // 只对 Bearer 调用开放跨域；Cookie 会话是 SameSite=Strict，跨域请求本来就带不上
@@ -25,6 +26,8 @@ export async function handleApi(request, env, ctx, url) {
     return json(r.body, r.status, r.cookie);
   }
   if (path === '/api/logout' && method === 'POST') return json({ ok: true }, 200, logoutCookie(url));
+  // 登录页也要用：背景图与页脚链接（不含任何需要保密的设置）
+  if (path === '/api/site' && method === 'GET') return json(siteInfo(await getSettings(env)));
 
   const role = await identify(request, env);
   if (path === '/api/session' && method === 'GET') {
@@ -52,14 +55,15 @@ export async function handleApi(request, env, ctx, url) {
   if (!hasRole(role, 'admin')) return json({ error: 'forbidden' }, 403);
   if (path === '/api/list' && method === 'GET') return list(env, url);
   if (path === '/api/stats' && method === 'GET') return stats(env);
-  if (path === '/api/settings' && method === 'GET') return json(publicSettings(await getSettings(env)));
+  if (path === '/api/settings' && method === 'GET') return json({ ...publicSettings(await getSettings(env)), rssReaders: RSS_READERS });
   if (path === '/api/settings' && method === 'POST') {
-    // {hotlink?: boolean, allow?: string[], domains?: string[]}，至少给一项
+    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {keys?, login?, upload?, interval?}, links?: [{name, url}]}，至少给一项
     const body = await request.json().catch(() => null);
     const next = {};
-    if ('hotlink' in (body ?? {})) {
-      if (typeof body.hotlink !== 'boolean') return json({ error: 'bad_request' }, 400);
-      next.hotlink = body.hotlink;
+    for (const f of ['hotlink', 'rss']) {
+      if (!(f in (body ?? {}))) continue;
+      if (typeof body[f] !== 'boolean') return json({ error: 'bad_request' }, 400);
+      next[f] = body[f];
     }
     if ('allow' in (body ?? {})) {
       if (!Array.isArray(body.allow) || body.allow.length > MAX_SITES) return json({ error: 'bad_request' }, 400);
@@ -75,9 +79,26 @@ export async function handleApi(request, env, ctx, url) {
       if (bad !== undefined) return json({ error: 'bad_site', site: String(bad) }, 400);
       next.domains = hosts;
     }
-    if (!Object.keys(next).length) return json({ error: 'bad_request' }, 400);
+    if ('links' in (body ?? {})) {
+      if (!Array.isArray(body.links) || body.links.length > MAX_LINKS) return json({ error: 'bad_request' }, 400);
+      const links = body.links.map(normLink);
+      const bad = body.links.find((_, i) => !links[i]);
+      if (bad !== undefined) return json({ error: 'bad_link', site: String(bad?.url ?? '') }, 400);
+      next.links = links;
+    }
+    let bgPatch;
+    if ('bg' in (body ?? {})) {
+      const b = body.bg;
+      if (!b || typeof b !== 'object') return json({ error: 'bad_request' }, 400);
+      if ('keys' in b && (!Array.isArray(b.keys) || b.keys.length > MAX_BG || !b.keys.every(isFileKey))) return json({ error: 'bad_request' }, 400);
+      if (('login' in b && typeof b.login !== 'boolean') || ('upload' in b && typeof b.upload !== 'boolean')) return json({ error: 'bad_request' }, 400);
+      if ('interval' in b && !BG_INTERVALS.includes(b.interval)) return json({ error: 'bad_request' }, 400);
+      bgPatch = b;
+    }
+    if (!Object.keys(next).length && !bgPatch) return json({ error: 'bad_request' }, 400);
     const cur = await getSettings(env, { fresh: true });
-    return json(publicSettings(await saveSettings(env, { ...cur, ...next })));
+    if (bgPatch) next.bg = { ...cur.bg, ...bgPatch };
+    return json({ ...publicSettings(await saveSettings(env, { ...cur, ...next })), rssReaders: RSS_READERS });
   }
   // POST /api/exempt {keys, on}：单张防盗链开关。on=true 表示这几张允许外链
   if (path === '/api/exempt' && method === 'POST') {
@@ -87,7 +108,7 @@ export async function handleApi(request, env, ctx, url) {
     const cur = await getSettings(env, { fresh: true });
     const set = new Set(cur.exempt);
     for (const k of keys) body.on ? set.add(k) : set.delete(k);
-    return json(publicSettings(await saveSettings(env, { ...cur, exempt: [...set] })));
+    return json({ ...publicSettings(await saveSettings(env, { ...cur, exempt: [...set] })), rssReaders: RSS_READERS });
   }
   if (path === '/api/delete' && method === 'POST') {
     const body = await request.json().catch(() => null);
@@ -171,12 +192,16 @@ async function list(env, url) {
 async function removeKeys(env, url, keys) {
   const stores = allStores(env);
   await Promise.all(stores.map((s) => s.bucket.delete(keys)));
-  // 顺手把它们从防盗链豁免名单里拿掉
+  // 顺手把它们从防盗链豁免名单和背景图里拿掉
   const cur = await getSettings(env, { fresh: true });
   const origins = [...new Set([url.origin, ...cur.domains.map((d) => `https://${d}`)])];
-  if (keys.some((k) => cur.exemptSet.has(k))) {
-    const gone = new Set(keys);
-    await saveSettings(env, { ...cur, exempt: cur.exempt.filter((k) => !gone.has(k)) });
+  const gone = new Set(keys);
+  if (keys.some((k) => cur.exemptSet.has(k) || cur.bg.keys.includes(k))) {
+    await saveSettings(env, {
+      ...cur,
+      exempt: cur.exempt.filter((k) => !gone.has(k)),
+      bg: { ...cur.bg, keys: cur.bg.keys.filter((k) => !gone.has(k)) },
+    });
   }
   await Promise.all(
     keys.flatMap((key) => {

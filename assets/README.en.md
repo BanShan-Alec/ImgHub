@@ -23,6 +23,8 @@
 
 Images are served straight from Cloudflare's edge: edge cache first, then R2 on the same network. **No database and no third-party storage on the read path.**
 
+Deploys are fast too: no build step, live within seconds.
+
 ### Compression in the browser
 
 Images are transcoded in your own browser before upload; the server only stores the final bytes:
@@ -43,9 +45,10 @@ The server never touches the bytes, so a download matches the file on your phone
 
 ## More features
 
-- **Upload and admin pages**: Material 3 Expressive UI, light / dark, Simplified Chinese / Traditional Chinese / English
+- **Upload, admin and settings pages**: Material 3 Expressive UI, light / dark, Simplified Chinese / Traditional Chinese / English
+- **Backgrounds**: pick up to 5 images from the host as the sign-in / upload page background; several rotate
 - **Two roles**: uploaders need only a password and can undo uploads from the last 24 hours; admins can browse, search, preview, bulk delete and manage hotlink protection
-- **Hotlink protection**: one switch on the admin page. Allowed sites (subdomains included) are listed there too, and single images can be exempted. Requests without a referrer (direct visits, RSS apps) and common web RSS readers always pass
+- **Hotlink protection**: one switch on the settings page, where allowed sites (subdomains included) are listed too; single images can be exempted on the admin page. Requests without a referrer (direct visits, RSS apps) always pass, and common web RSS readers pass by default (can be turned off)
 - **Readable file names**: `ImgHub-20261121-153045-k7q2.avif` (upload time + random code) by default, or keep the original name
 - **Script uploads**: call `/api/upload` with a Bearer token from your writing workflow
 
@@ -90,7 +93,7 @@ Cloudflare's edge cache does not work on `workers.dev`, so every request reads R
 1. Open `https://img.example.com/`, enter the upload password, upload an image and open the returned link in a new tab
 2. Open `https://img.example.com/admin` and sign in with the admin account; the image should be listed
 
-**Hotlink protection is off by default.** Before turning it on, replace the sample domains under "Allowed sites" on the admin page with your blog's domain (subdomains are included), or your blog's images will be blocked.
+**Hotlink protection is off by default.** Before turning it on, replace the sample domains under "Allowed sites" on the settings page with your blog's domain (subdomains are included), or your blog's images will be blocked.
 
 ### Changing passwords or settings later
 
@@ -101,7 +104,7 @@ Everything lives under **Workers & Pages** → `cf-imghub` → **Settings** → 
 - Always use **Secret** for passwords; **Text** works too but shows the value in plain sight
 - Changing `SESSION_SECRET` signs everyone out; changing a password only signs out that role
 
-Several domains: add more custom domains under the Worker's **Settings → Domains & Routes**; links follow the domain you opened the page on. List them under **Link domains** on the admin page and a globe button appears in the top bar of the upload and admin pages to switch which domain links use.
+Several domains: add more custom domains under the Worker's **Settings → Domains & Routes**; links follow the domain you opened the page on. List them under **Link domains** on the settings page and a globe button appears in the top bar of the upload and admin pages to switch which domain links use.
 
 ### Troubleshooting
 

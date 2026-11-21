@@ -3,6 +3,9 @@
 //
 // 防盗链语义：hotlink=true 时全局开启；allow 是后台填的放行网站（含子域）；exempt 里的 key 单独放行（单张开关）。
 // domains：本图床绑定的其他域名（只认完整主机名）。上传页/管理页可选用哪个域名生成链接，防盗链也把它们当作自身。
+// rss：是否放行内建的网页版 RSS 阅读器名单（默认开）。
+// bg：登录页 / 上传页背景，keys 是本图床里的图片（最多 5 张，多于 1 张时轮播），interval 为轮播秒数。
+// links：页脚里额外的友情链接 [{name, url}]（秋风塬上、秋风广告规则两站是内建的，写死在前端 ui.js，不能移除）。bg 与 links 登录前就要用，经 GET /api/site 公开（见 siteInfo）。
 // 单张设置不写进对象的 customMetadata，因为图片回应会在 Cache API 里缓存一年，
 // 改了 metadata 也清不掉其他机房的缓存；放在设置里则所有机房 30 秒内生效。
 import { configStore } from './stores.js';
@@ -10,9 +13,20 @@ import { configStore } from './stores.js';
 export const SETTINGS_KEY = '.imghub/settings.json';
 const TTL = 30 * 1000;
 // 没有设置对象时：防盗链关闭，放行名单预置三项（本站两个博客 + 示例域名，部署者在管理页改成自己的）
-const DEFAULTS = { hotlink: false, allow: ['awads.cc', 'awavenue.top', 'example.com'], exempt: [], domains: [] };
+const DEFAULTS = {
+  hotlink: false,
+  rss: true,
+  allow: ['awads.cc', 'awavenue.top', 'example.com'],
+  exempt: [],
+  domains: [],
+  bg: { keys: [], login: true, upload: true, interval: 10 },
+  links: [],
+};
 export const MAX_SITES = 200;
 export const MAX_DOMAINS = 20;
+export const MAX_BG = 5;
+export const MAX_LINKS = 10;
+export const BG_INTERVALS = [5, 10, 20, 40];
 
 let memo = null;
 let memoAt = 0;
@@ -47,12 +61,37 @@ const withSets = (d) => ({ ...d, exemptSet: new Set(d.exempt), domainSet: new Se
 
 // 只保留已知字段；allow / domains 规范化成主机名，exempt 去重
 function normalize(d) {
+  const bg = d?.bg && typeof d.bg === 'object' ? d.bg : {};
   return {
     hotlink: typeof d?.hotlink === 'boolean' ? d.hotlink : DEFAULTS.hotlink,
+    rss: typeof d?.rss === 'boolean' ? d.rss : DEFAULTS.rss,
     allow: Array.isArray(d?.allow) ? [...new Set(d.allow.map(normSite).filter(Boolean))].slice(0, MAX_SITES) : [...DEFAULTS.allow],
     exempt: Array.isArray(d?.exempt) ? [...new Set(d.exempt.filter((k) => typeof k === 'string' && k))] : [],
     domains: Array.isArray(d?.domains) ? [...new Set(d.domains.map(normSite).filter(Boolean))].slice(0, MAX_DOMAINS) : [],
+    bg: {
+      keys: Array.isArray(bg.keys) ? [...new Set(bg.keys.filter(isFileKey))].slice(0, MAX_BG) : [],
+      login: typeof bg.login === 'boolean' ? bg.login : DEFAULTS.bg.login,
+      upload: typeof bg.upload === 'boolean' ? bg.upload : DEFAULTS.bg.upload,
+      interval: BG_INTERVALS.includes(bg.interval) ? bg.interval : DEFAULTS.bg.interval,
+    },
+    links: Array.isArray(d?.links) ? d.links.map(normLink).filter(Boolean).slice(0, MAX_LINKS) : [],
   };
+}
+
+export const isFileKey = (k) => typeof k === 'string' && k.length > 0 && k.length <= 1024 && !k.startsWith('.');
+
+// 友情链接：名称 1–40 字，地址只收 http(s)；不合法返回 null
+export function normLink(l) {
+  const name = typeof l?.name === 'string' ? l.name.trim() : '';
+  if (!name || [...name].length > 40 || typeof l?.url !== 'string') return null;
+  try {
+    const u = new URL(l.url.trim().includes('://') ? l.url.trim() : `https://${l.url.trim()}`);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(u.hostname) || u.href.length > 500) return null;
+    return { name, url: u.href };
+  } catch {
+    return null;
+  }
 }
 
 // 后台填的网站 → 小写主机名。接受 blog.example.com、https://example.com/path、*.example.com、中文域名（转成 punycode）；
@@ -70,5 +109,10 @@ export function normSite(input) {
 }
 
 export function publicSettings(s) {
-  return { hotlink: s.hotlink, allow: s.allow, exempt: s.exempt, domains: s.domains };
+  return { hotlink: s.hotlink, rss: s.rss, allow: s.allow, exempt: s.exempt, domains: s.domains, bg: s.bg, links: s.links };
+}
+
+// 不登录也能读的部分（登录页背景、页脚）
+export function siteInfo(s) {
+  return { bg: s.bg, links: s.links };
 }

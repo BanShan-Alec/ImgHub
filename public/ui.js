@@ -32,6 +32,13 @@ const ICONS = {
   selectAll: 'M3 5h2V3c-1.1 0-2 .9-2 2zm0 8h2v-2H3v2zm4 8h2v-2H7v2zM3 9h2V7H3v2zm10-6h-2v2h2V3zm6 0v2h2c0-1.1-.9-2-2-2zM5 21v-2H3c0 1.1.9 2 2 2zm-2-4h2v-2H3v2zM9 3H7v2h2V3zm2 18h2v-2h-2v2zm8-8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2zm0-12h2V7h-2v2zm0 8h2v-2h-2v2zm-4 4h2v-2h-2v2zm0-16h2V3h-2v2zM7 17h10V7H7v10zm2-8h6v6H9V9z',
   history: 'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z',
   sweep: 'M5 13h14v-2H5v2zm-2 4h14v-2H3v2zM7 7v2h14V7H7z',
+  settings: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
+  github: 'M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.27-.01-1-.02-1.96-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.36.78 1.06.78 2.14 0 1.55-.01 2.79-.01 3.17 0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z',
+  wallpaper: 'M4 4h7V2H4c-1.1 0-2 .9-2 2v7h2V4zm6 9-4 5h12l-3-4-2.03 2.71L10 13zm7-4.5c0-.83-.67-1.5-1.5-1.5S14 7.67 14 8.5s.67 1.5 1.5 1.5S17 9.33 17 8.5zM20 2h-7v2h7v7h2V4c0-1.1-.9-2-2-2zm0 18h-7v2h7c1.1 0 2-.9 2-2v-7h-2v7zM4 13H2v7c0 1.1.9 2 2 2h7v-2H4v-7z',
+  rss: 'M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20 5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z',
+  left: 'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
+  right: 'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
+  favorite: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
   error: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
 };
 
@@ -321,16 +328,21 @@ export function errText(r) {
 // need：'upload' | 'admin'。返回 { role, user }
 export const canDo = (role, need) => role === 'admin' || (need === 'upload' && role === 'upload');
 
-export async function gate(need) {
+// bg：登录后这一页用哪组背景（'upload'；不传 = 无背景）。登录卡片显示时用 'login' 那组
+export async function gate(need, { bg = null } = {}) {
+  footer();
   const r = await api('/api/session');
   if (canDo(r.body?.role, need)) {
     document.body.classList.remove('locked');
     setDomains(r.body.domains);
+    backdrop(bg);
     return r.body;
   }
+  backdrop('login');
   // 登录成功后再取一次会话，拿到域名列表
   const s = await showLogin(need);
   api('/api/session').then((x) => setDomains(x.body?.domains));
+  backdrop(bg);
   return s;
 }
 
@@ -345,7 +357,10 @@ function showLogin(need) {
     const wrap = document.createElement('div');
     wrap.className = 'gate';
     wrap.innerHTML = `
-      <button class="btn icon corner state" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
+      <div class="corner">
+        <a class="btn icon state" href="${GITHUB}" target="_blank" rel="noopener" data-i18n-tip="github"><i data-icon="github"></i></a>
+        <button class="btn icon state" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
+      </div>
       <div class="gate-card">
         <span class="emblem"><i data-icon="logo"></i><span class="badge"><i data-icon="lock"></i></span></span>
         <h1 class="headline"></h1>
@@ -441,7 +456,119 @@ function showLogin(need) {
   });
 }
 
+// ---------- 站点外观：背景图、页脚 ----------
+export const GITHUB = 'https://github.com/TG-Twilight/CF-ImgHub';
+// 内建友情链接：始终显示，设置里不能移除；名称随界面语言
+export const BUILTIN_LINKS = [
+  { i18n: 'siteAwads', url: 'https://awads.cc/' },
+  { i18n: 'siteAwavenue', url: 'https://awavenue.top/' },
+];
+let siteReq;
+// 公开设置（背景、页脚链接）：每页只取一次；设置页保存后用 setSite() 更新
+export const site = () => (siteReq ??= api('/api/site').then((r) => (r.ok ? r.body : { bg: { keys: [] }, links: [] })));
+export function setSite(info) {
+  siteReq = Promise.resolve(info);
+  footer();
+}
+export const fileUrl = (key) => `/file/${encodeURIComponent(key)}`;
+const BG_FADE = 1200; // 与 CSS 里 .backdrop img 的淡入时长一致
+
+// 背景轮播：两层 <img> 交替淡入。which = 'login' | 'upload' | null（无背景）
+let bg = { sig: null, timer: 0 };
+export async function backdrop(which) {
+  const info = await site();
+  const keys = which && info.bg?.[which] ? info.bg.keys ?? [] : [];
+  const sig = `${which}|${keys.join('|')}|${info.bg?.interval}`;
+  if (sig === bg.sig) return;
+  clearInterval(bg.timer);
+  const state = (bg = { sig, timer: 0 });
+  let box = $('.backdrop');
+  if (!keys.length) {
+    document.body.classList.remove('has-bg');
+    box?.classList.remove('show');
+    return;
+  }
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'backdrop';
+    box.setAttribute('aria-hidden', 'true');
+    box.innerHTML = '<img alt=""><img alt="">';
+    document.body.prepend(box);
+  }
+  const layers = [...box.querySelectorAll('img')];
+  let front = layers.findIndex((l) => l.classList.contains('on'));
+  if (front < 0) front = 0;
+  let i = Math.floor(Math.random() * keys.length);
+  const show = async (key) => {
+    const next = layers[1 - front];
+    next.src = fileUrl(key);
+    try {
+      await next.decode();
+    } catch {
+      return; // 图片被删或加载失败：保持当前这张
+    }
+    if (state !== bg) return; // 期间页面换了背景
+    next.classList.add('on');
+    layers[front].classList.remove('on');
+    front = 1 - front;
+    document.body.classList.add('has-bg');
+    box.classList.add('show');
+  };
+  await show(keys[i]);
+  if (keys.length < 2 || reduceMotion.matches || state !== bg) return;
+  state.timer = setInterval(() => {
+    if (document.hidden) return;
+    i = (i + 1) % keys.length;
+    show(keys[i]);
+  }, (info.bg.interval || 10) * 1000 + BG_FADE);
+}
+
+// 页脚：项目名 + GitHub + 友情链接（内建两站在前）
+export async function footer() {
+  let el = $('footer.foot');
+  if (!el) {
+    el = document.createElement('footer');
+    el.className = 'foot';
+    document.body.append(el);
+    document.addEventListener('langchange', () => footer());
+  }
+  const info = await site();
+  const link = (href, ...content) => {
+    const a = document.createElement('a');
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.append(...content);
+    return a;
+  };
+  const row = (cls, ...content) => {
+    const d = document.createElement('div');
+    d.className = `foot-row ${cls}`;
+    d.append(...content);
+    return d;
+  };
+  const brand = document.createElement('span');
+  brand.className = 'foot-brand';
+  brand.append(logo('foot-logo'), 'CF-ImgHub');
+  const gh = link(GITHUB, icon('github', 'sm'), t('footSource'));
+  gh.className = 'gh';
+  const label = document.createElement('span');
+  label.className = 'foot-label';
+  label.append(icon('favorite', 'sm'), t('friendLinks'));
+  const friends = [...BUILTIN_LINKS.map((b) => ({ name: t(b.i18n), url: b.url })), ...(info.links ?? [])];
+  el.replaceChildren(row('', brand, gh), row('friends', label, ...friends.map((l) => link(l.url, l.name))));
+}
+
 // ---------- 杂项 ----------
+// 上传时间：两种 key 都带时间（规范名是 UTC+8 的钟面），解析不出就用 R2 的上传时间
+export function timeOf(o) {
+  const ts = /^(\d{13})_/.exec(o.key)?.[1];
+  if (ts) return Number(ts);
+  const m = /^ImgHub-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})-/.exec(o.key);
+  if (m) return Date.UTC(+m[1], m[2] - 1, +m[3], m[4] - 8, +m[5], +m[6]);
+  return Date.parse(o.uploaded) || 0;
+}
+
 export function size(n) {
   if (n == null) return '';
   if (n < 1024) return `${n} B`;
