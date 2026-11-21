@@ -1,6 +1,6 @@
 // 管理页：管理员登录 → 列出桶内全部文件 → 搜索、筛选、预览、复制、批量删除
 import { t } from './i18n.js';
-import { $, api, confirmBox, copyText, errText, gate, icon, initLang, loader, logout, setShape, size, snack, snippet, topbarShadow, when } from './ui.js';
+import { $, api, confirmBox, copyText, errText, gate, icon, initLang, linkOf, loader, logout, setDomains, setShape, size, snack, snippet, topbarShadow, when } from './ui.js';
 
 const PAGE = 120; // 每次渲染的卡片数，避免文件多时 DOM 过大
 let all = []; // 新的在前
@@ -23,7 +23,7 @@ document.addEventListener('langchange', () => {
 });
 
 // ---------- 防盗链设置 ----------
-let settings = { hotlink: false, allow: [], exempt: [] };
+let settings = { hotlink: false, allow: [], exempt: [], domains: [] };
 let exempt = new Set();
 const setToggle = (b, on) => b.setAttribute('aria-checked', String(on));
 function applySettings(s) {
@@ -35,20 +35,26 @@ function applySettings(s) {
   $('#exemptCount').textContent = t('exemptN', { n: exempt.size });
   for (const el of document.querySelectorAll('.tile')) el.classList.toggle('exempt', exempt.has(el.dataset.key));
   if (current) setToggle($('[data-exempt]', dlg), exempt.has(current.key));
-  renderSites();
+  renderChips('allow');
+  renderChips('domains');
+  setDomains(s.domains);
 }
 
-// 放行网站：输入胶囊（chip），× 移除；保存整份名单，服务端负责规范化与校验
-function renderSites() {
-  const box = $('#sites');
+// 放行网站（allow）与链接域名（domains）：输入胶囊（chip），× 移除；保存整份名单，服务端负责规范化与校验
+const CHIPS = {
+  allow: { box: '#sites', form: '#siteForm', input: '#siteInput', empty: 'sitesEmpty' },
+  domains: { box: '#domains', form: '#domainForm', input: '#domainInput', empty: 'domainsEmpty' },
+};
+function renderChips(field) {
+  const box = $(CHIPS[field].box);
   box.replaceChildren();
-  if (!settings.allow.length) {
+  if (!settings[field].length) {
     const p = document.createElement('span');
     p.className = 'chips-empty';
-    p.textContent = t('sitesEmpty');
+    p.textContent = t(CHIPS[field].empty);
     box.append(p);
   }
-  for (const site of settings.allow) {
+  for (const site of settings[field]) {
     const c = document.createElement('span');
     c.className = 'chip';
     const name = document.createElement('span');
@@ -58,16 +64,16 @@ function renderSites() {
     x.className = 'chip-x state';
     x.title = x.ariaLabel = t('removeSite', { site });
     x.append(icon('close', 'sm'));
-    x.onclick = () => saveSites(settings.allow.filter((d) => d !== site), x);
+    x.onclick = () => saveList(field, settings[field].filter((d) => d !== site), x);
     c.append(name, x);
     box.append(c);
   }
 }
-async function saveSites(allow, btn) {
+async function saveList(field, list, btn) {
   if (saving) return false;
   saving = true;
   btn.setAttribute('aria-busy', 'true');
-  const r = await api('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ allow }) });
+  const r = await api('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: list }) });
   saving = false;
   btn.removeAttribute('aria-busy');
   if (!r.ok) {
@@ -79,14 +85,16 @@ async function saveSites(allow, btn) {
   snack(t('saved'));
   return true;
 }
-$('#siteForm').onsubmit = async (e) => {
-  e.preventDefault();
-  const input = $('#siteInput');
-  // 允许一次贴多个：空格、逗号、换行分隔
-  const add = input.value.split(/[\s,，、]+/).filter(Boolean);
-  if (!add.length) return input.focus();
-  if (await saveSites([...settings.allow, ...add], $('#siteForm button'))) input.value = '';
-};
+for (const [field, c] of Object.entries(CHIPS)) {
+  $(c.form).onsubmit = async (e) => {
+    e.preventDefault();
+    const input = $(c.input);
+    // 允许一次贴多个：空格、逗号、换行分隔
+    const add = input.value.split(/[\s,，、]+/).filter(Boolean);
+    if (!add.length) return input.focus();
+    if (await saveList(field, [...settings[field], ...add], $(`${c.form} button`))) input.value = '';
+  };
+}
 // 整张卡片 / 整行都可以点（开关本身的点击会冒泡上来，所以开关上不另外绑事件）；保存期间忽略重复点击
 let saving = false;
 async function saveSetting(path, body, btn) {
@@ -247,7 +255,7 @@ $('#selAll').onclick = () => {
   syncSelection();
 };
 $('#selCopy').onclick = (e) => {
-  const urls = all.filter((o) => selected.has(o.key)).map((o) => o.url);
+  const urls = all.filter((o) => selected.has(o.key)).map((o) => linkOf(o.url));
   copyText(urls.join('\n'), null);
 };
 $('#selDelete').onclick = async () => {
@@ -304,7 +312,7 @@ function openDetail(o) {
     pv.append(icon('file'));
   }
   $('.item-name', dlg).textContent = entry.name;
-  $('[data-f=url]', dlg).textContent = o.url;
+  $('[data-f=url]', dlg).textContent = linkOf(o.url);
   $('[data-f=type]', dlg).textContent = o.contentType || '—';
   $('[data-f=size]', dlg).textContent = `${size(o.size)} (${o.size.toLocaleString()} B)`;
   $('[data-f=uploaded]', dlg).textContent = when(timeOf(o));
@@ -312,7 +320,7 @@ function openDetail(o) {
   $('[data-f=name]', dlg).textContent = o.name || '';
   for (const el of dlg.querySelectorAll('.orig')) el.hidden = !o.name;
   setToggle($('[data-exempt]', dlg), exempt.has(o.key));
-  $('[data-open]', dlg).href = o.url;
+  $('[data-open]', dlg).href = linkOf(o.url);
   for (const b of dlg.querySelectorAll('[data-copy]')) b.onclick = () => copyText(snippet(b.dataset.copy, entry), null);
   dlg.showModal();
 }

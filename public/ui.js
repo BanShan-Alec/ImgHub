@@ -12,6 +12,7 @@ const ICONS = {
   check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
   delete: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
   copy: 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z',
+  public: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z',
   link: 'M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z',
   code: 'M9.4 16.6 4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0 4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z',
   md: 'M20.56 18H3.44C2.65 18 2 17.37 2 16.59V7.41C2 6.63 2.65 6 3.44 6h17.12c.79 0 1.44.63 1.44 1.41v9.18c0 .78-.65 1.41-1.44 1.41zM6.81 15.19v-3.66l1.92 2.35 1.92-2.35v3.66h1.93V8.81h-1.93l-1.92 2.35-1.92-2.35H4.89v6.38h1.92zM19.69 12h-1.92V8.81h-1.92V12h-1.93l2.89 3.28L19.69 12z',
@@ -172,30 +173,66 @@ export function initLang() {
 }
 
 let menuSeq = 0;
-function langMenu(button) {
+// 弹出菜单：items() 每次打开时取 [[值, 文字]]，current() 取当前值
+function popMenu(button, items, current, pick) {
   const menu = document.createElement('div');
   menu.className = 'menu';
   menu.popover = 'auto';
   menu.id = `menu-${++menuSeq}`;
-  for (const [v, label] of Object.entries(LANGS)) {
-    const b = document.createElement('button');
-    b.className = 'state';
-    b.dataset.v = v;
-    b.textContent = label;
-    b.onclick = () => {
-      setLang(v);
-      menu.hidePopover();
-    };
-    menu.append(b);
-  }
   document.body.append(menu);
   button.addEventListener('click', () => {
-    for (const b of menu.children) b.classList.toggle('on', b.dataset.v === getLang());
+    menu.replaceChildren();
+    for (const [v, label] of items()) {
+      const b = document.createElement('button');
+      b.className = 'state';
+      b.classList.toggle('on', v === current());
+      b.textContent = label;
+      b.onclick = () => {
+        pick(v);
+        menu.hidePopover();
+      };
+      menu.append(b);
+    }
     menu.showPopover();
     const r = button.getBoundingClientRect();
     menu.style.top = `${r.bottom + 6}px`;
     menu.style.left = `${Math.max(8, Math.min(r.right - menu.offsetWidth, innerWidth - menu.offsetWidth - 8))}px`;
   });
+}
+function langMenu(button) {
+  popMenu(button, () => Object.entries(LANGS), getLang, setLang);
+}
+
+// ---------- 链接域名 ----------
+// 默认用当前打开页面的域名；后台登记了其他域名时，顶栏出现地球按钮，可选用哪个域名生成链接（记在本机）
+const DOMAIN_KEY = 'imghub.domain';
+let domains = [];
+const domainChoices = () => [...new Set([location.host, ...domains])];
+export function linkHost() {
+  const saved = localStorage.getItem(DOMAIN_KEY);
+  return saved && domainChoices().includes(saved) ? saved : location.host;
+}
+// 把服务端给的链接（当前域名）换成选定的域名
+export function linkOf(url) {
+  const u = new URL(url, location.href);
+  const host = linkHost();
+  // 不能只改 u.host：新值不带端口时会保留旧端口
+  return host === u.host ? u.href : `https://${host}${u.pathname}${u.search}`;
+}
+export function setDomains(list) {
+  domains = Array.isArray(list) ? list : [];
+  const btn = $('[data-domain-menu]');
+  if (!btn) return;
+  btn.hidden = domainChoices().length < 2;
+  if (!btn.dataset.ready) {
+    btn.dataset.ready = '1';
+    popMenu(btn, () => domainChoices().map((d) => [d, d]), linkHost, (v) => {
+      if (v === location.host) localStorage.removeItem(DOMAIN_KEY);
+      else localStorage.setItem(DOMAIN_KEY, v);
+      snack(t('linkDomainSet', { host: v }));
+      document.dispatchEvent(new CustomEvent('domainchange'));
+    });
+  }
 }
 
 // ---------- 提示条 ----------
@@ -288,9 +325,13 @@ export async function gate(need) {
   const r = await api('/api/session');
   if (canDo(r.body?.role, need)) {
     document.body.classList.remove('locked');
+    setDomains(r.body.domains);
     return r.body;
   }
-  return showLogin(need);
+  // 登录成功后再取一次会话，拿到域名列表
+  const s = await showLogin(need);
+  api('/api/session').then((x) => setDomains(x.body?.domains));
+  return s;
 }
 
 export async function logout() {
@@ -420,7 +461,8 @@ export function topbarShadow() {
 }
 
 export function snippet(kind, entry) {
-  if (kind === 'md') return `![${entry.name}](${entry.url})`;
-  if (kind === 'html') return `<img src="${entry.url}" alt="${entry.name.replace(/"/g, '&quot;')}" loading="lazy">`;
-  return entry.url;
+  const url = linkOf(entry.url);
+  if (kind === 'md') return `![${entry.name}](${url})`;
+  if (kind === 'html') return `<img src="${url}" alt="${entry.name.replace(/"/g, '&quot;')}" loading="lazy">`;
+  return url;
 }

@@ -101,7 +101,7 @@ Everything lives under **Workers & Pages** → `cf-imghub` → **Settings** → 
 - Always use **Secret** for passwords; **Text** works too but shows the value in plain sight
 - Changing `SESSION_SECRET` signs everyone out; changing a password only signs out that role
 
-Optional: if the host has several domains, add `PUBLIC_BASE` (type **Text**, e.g. `https://img.example.com`) so returned links always use that domain.
+Several domains: add more custom domains under the Worker's **Settings → Domains & Routes**; links follow the domain you opened the page on. List them under **Link domains** on the admin page and a globe button appears in the top bar of the upload and admin pages to switch which domain links use.
 
 ### Troubleshooting
 

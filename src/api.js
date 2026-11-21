@@ -2,7 +2,7 @@
 // 错误只返回代码（error 字段），由前端按语言翻译
 import { pickContentType } from './mime.js';
 import { allStores, BRAND, keyTime, writeStore } from './stores.js';
-import { MAX_SITES, getSettings, normSite, publicSettings, saveSettings } from './settings.js';
+import { MAX_DOMAINS, MAX_SITES, getSettings, normSite, publicSettings, saveSettings } from './settings.js';
 import { hasRole, identify, login, logoutCookie, sameOrigin } from './auth.js';
 
 // 只对 Bearer 调用开放跨域；Cookie 会话是 SameSite=Strict，跨域请求本来就带不上
@@ -28,7 +28,9 @@ export async function handleApi(request, env, ctx, url) {
 
   const role = await identify(request, env);
   if (path === '/api/session' && method === 'GET') {
-    return json({ role, user: role === 'admin' ? env.ADMIN_USER : undefined });
+    // domains：已登录时告诉前端还能用哪些域名生成链接
+    const domains = role ? (await getSettings(env)).domains : undefined;
+    return json({ role, user: role === 'admin' ? env.ADMIN_USER : undefined, domains });
   }
   if (!role) return json({ error: 'unauthorized' }, 401);
   if (method !== 'GET' && !sameOrigin(request, url)) return json({ error: 'bad_origin' }, 403);
@@ -52,7 +54,7 @@ export async function handleApi(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return stats(env);
   if (path === '/api/settings' && method === 'GET') return json(publicSettings(await getSettings(env)));
   if (path === '/api/settings' && method === 'POST') {
-    // {hotlink?: boolean, allow?: string[]}，至少给一项
+    // {hotlink?: boolean, allow?: string[], domains?: string[]}，至少给一项
     const body = await request.json().catch(() => null);
     const next = {};
     if ('hotlink' in (body ?? {})) {
@@ -66,6 +68,13 @@ export async function handleApi(request, env, ctx, url) {
       if (bad !== undefined) return json({ error: 'bad_site', site: String(bad) }, 400);
       next.allow = sites;
     }
+    if ('domains' in (body ?? {})) {
+      if (!Array.isArray(body.domains) || body.domains.length > MAX_DOMAINS) return json({ error: 'bad_request' }, 400);
+      const hosts = body.domains.map(normSite);
+      const bad = body.domains.find((_, i) => !hosts[i]);
+      if (bad !== undefined) return json({ error: 'bad_site', site: String(bad) }, 400);
+      next.domains = hosts;
+    }
     if (!Object.keys(next).length) return json({ error: 'bad_request' }, 400);
     const cur = await getSettings(env, { fresh: true });
     return json(publicSettings(await saveSettings(env, { ...cur, ...next })));
@@ -78,7 +87,7 @@ export async function handleApi(request, env, ctx, url) {
     const cur = await getSettings(env, { fresh: true });
     const set = new Set(cur.exempt);
     for (const k of keys) body.on ? set.add(k) : set.delete(k);
-    return json(await saveSettings(env, { ...cur, exempt: [...set] }));
+    return json(publicSettings(await saveSettings(env, { ...cur, exempt: [...set] })));
   }
   if (path === '/api/delete' && method === 'POST') {
     const body = await request.json().catch(() => null);
@@ -121,8 +130,8 @@ async function upload(request, env, url) {
     customMetadata: original ? undefined : { name },
   });
 
-  const base = env.PUBLIC_BASE || url.origin;
-  return json({ key, url: `${base}/file/${encodeURIComponent(key)}`, size: obj.size, contentType, store: store.binding });
+  // 从哪个域名进来就用哪个域名；要换成其他绑定域名由前端改写（见 ui.js 的 linkOf）
+  return json({ key, url: `${url.origin}/file/${encodeURIComponent(key)}`, size: obj.size, contentType, store: store.binding });
 }
 
 // 规范名：ImgHub-YYYYMMDD-HHmmss-xxxx.ext，时间按 UTC+8；随机码用去掉 0/o/1/l 的 32 个字符，防同秒冲突、也防按时间猜链接
@@ -145,12 +154,11 @@ async function list(env, url) {
     prefix: url.searchParams.get('prefix') || undefined,
     include: ['httpMetadata', 'customMetadata'],
   });
-  const base = env.PUBLIC_BASE || url.origin;
   return json({
     items: res.objects.filter((o) => !o.key.startsWith('.')).map((o) => ({
       key: o.key,
       name: o.customMetadata?.name,
-      url: `${base}/file/${encodeURIComponent(o.key)}`,
+      url: `${url.origin}/file/${encodeURIComponent(o.key)}`,
       size: o.size,
       contentType: o.httpMetadata?.contentType,
       uploaded: o.uploaded,
@@ -161,11 +169,11 @@ async function list(env, url) {
 
 // 从所有桶删除。Cache API 只能清当前机房的缓存，其他机房要等过期或在面板清除
 async function removeKeys(env, url, keys) {
-  const base = env.PUBLIC_BASE || url.origin;
   const stores = allStores(env);
   await Promise.all(stores.map((s) => s.bucket.delete(keys)));
   // 顺手把它们从防盗链豁免名单里拿掉
   const cur = await getSettings(env, { fresh: true });
+  const origins = [...new Set([url.origin, ...cur.domains.map((d) => `https://${d}`)])];
   if (keys.some((k) => cur.exemptSet.has(k))) {
     const gone = new Set(keys);
     await saveSettings(env, { ...cur, exempt: cur.exempt.filter((k) => !gone.has(k)) });
@@ -173,9 +181,7 @@ async function removeKeys(env, url, keys) {
   await Promise.all(
     keys.flatMap((key) => {
       const path = `/file/${encodeURIComponent(key)}`;
-      const jobs = [caches.default.delete(new Request(url.origin + path))];
-      if (base !== url.origin) jobs.push(caches.default.delete(new Request(base + path)));
-      return jobs;
+      return origins.map((o) => caches.default.delete(new Request(o + path)));
     }),
   );
 }

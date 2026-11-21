@@ -29,7 +29,7 @@ export async function serveFile(request, env, ctx, url) {
 
   // 防盗链放在查缓存之前：缓存里的回应不分来源，判断只看 Referer 和设置（设置在内存里缓存，不额外耗时）
   const settings = await getSettings(env);
-  if (settings.hotlink && !settings.exemptSet.has(key) && !refererAllowed(request, url, env, settings.allow)) {
+  if (settings.hotlink && !settings.exemptSet.has(key) && !refererAllowed(request, url, settings)) {
     return plain(403, 'Hotlinking not allowed');
   }
 
@@ -146,7 +146,7 @@ function objectHeaders(obj, key) {
 }
 
 // 没有 Referer（直接打开、RSS 阅读器、大部分 App）放行；来自博客、图床自身的放行
-function refererAllowed(request, url, env, allow) {
+function refererAllowed(request, url, settings) {
   const ref = request.headers.get('Referer');
   if (!ref) return true;
   let host;
@@ -156,9 +156,9 @@ function refererAllowed(request, url, env, allow) {
     return false;
   }
   if (host === url.hostname) return true;
-  if (env.PUBLIC_BASE && host === new URL(env.PUBLIC_BASE).hostname) return true;
+  if (settings.domainSet.has(host)) return true;
   const match = (d) => host === d || host.endsWith(`.${d}`);
-  return allow.some(match) || RSS_READERS.some(match);
+  return settings.allow.some(match) || RSS_READERS.some(match);
 }
 
 function rangeOf(range, size) {

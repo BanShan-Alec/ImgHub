@@ -2,6 +2,7 @@
 // 放 R2 而不是 KV / vars：不用多建资源，改了不用重新部署；读路径每个 isolate 每 30 秒最多读一次。
 //
 // 防盗链语义：hotlink=true 时全局开启；allow 是后台填的放行网站（含子域）；exempt 里的 key 单独放行（单张开关）。
+// domains：本图床绑定的其他域名（只认完整主机名）。上传页/管理页可选用哪个域名生成链接，防盗链也把它们当作自身。
 // 单张设置不写进对象的 customMetadata，因为图片回应会在 Cache API 里缓存一年，
 // 改了 metadata 也清不掉其他机房的缓存；放在设置里则所有机房 30 秒内生效。
 import { configStore } from './stores.js';
@@ -9,8 +10,9 @@ import { configStore } from './stores.js';
 export const SETTINGS_KEY = '.imghub/settings.json';
 const TTL = 30 * 1000;
 // 没有设置对象时：防盗链关闭，放行名单预置三项（本站两个博客 + 示例域名，部署者在管理页改成自己的）
-const DEFAULTS = { hotlink: false, allow: ['awads.cc', 'awavenue.top', 'example.com'], exempt: [] };
+const DEFAULTS = { hotlink: false, allow: ['awads.cc', 'awavenue.top', 'example.com'], exempt: [], domains: [] };
 export const MAX_SITES = 200;
+export const MAX_DOMAINS = 20;
 
 let memo = null;
 let memoAt = 0;
@@ -41,14 +43,15 @@ export async function saveSettings(env, next) {
   return data;
 }
 
-const withSets = (d) => ({ ...d, exemptSet: new Set(d.exempt) });
+const withSets = (d) => ({ ...d, exemptSet: new Set(d.exempt), domainSet: new Set(d.domains) });
 
-// 只保留已知字段；allow 规范化成主机名，exempt 去重
+// 只保留已知字段；allow / domains 规范化成主机名，exempt 去重
 function normalize(d) {
   return {
     hotlink: typeof d?.hotlink === 'boolean' ? d.hotlink : DEFAULTS.hotlink,
     allow: Array.isArray(d?.allow) ? [...new Set(d.allow.map(normSite).filter(Boolean))].slice(0, MAX_SITES) : [...DEFAULTS.allow],
     exempt: Array.isArray(d?.exempt) ? [...new Set(d.exempt.filter((k) => typeof k === 'string' && k))] : [],
+    domains: Array.isArray(d?.domains) ? [...new Set(d.domains.map(normSite).filter(Boolean))].slice(0, MAX_DOMAINS) : [],
   };
 }
 
@@ -67,5 +70,5 @@ export function normSite(input) {
 }
 
 export function publicSettings(s) {
-  return { hotlink: s.hotlink, allow: s.allow, exempt: s.exempt };
+  return { hotlink: s.hotlink, allow: s.allow, exempt: s.exempt, domains: s.domains };
 }
