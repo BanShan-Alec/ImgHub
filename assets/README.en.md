@@ -94,6 +94,26 @@ Cloudflare's edge cache does not work on `workers.dev`, so every request reads R
 
 **Hotlink protection is off by default.** Before turning it on, replace the sample domains under "Allowed sites" on the settings page with your blog's domain (subdomains are included), or your blog's images will be blocked.
 
+### Step 4 (optional): add Telegram storage
+
+Skip this if you don't need it; R2 alone works fine. Three modes:
+
+| Mode | What it does |
+|------|------|
+| R2 only (default) | Fastest |
+| R2 + Telegram backup | Served from R2 with a copy in Telegram; falls back to Telegram if a file is missing from R2 |
+| Telegram only | Uses no R2 space (R2 keeps a tiny index); uncached images take 0.5–3 s to open; up to 100 MB per file |
+
+1. **Create a bot**: open [@BotFather](https://t.me/BotFather) in Telegram, send `/newbot` and follow the prompts. You get a token like `123456789:AA…`. It is the bot's password; keep it private
+2. **Create a channel**: a private one is fine
+3. **Make the bot a channel admin**: channel info → **Administrators** → **Add Admin**, search for the bot's username, and allow at least **Post messages** and **Delete messages**
+4. **Find the channel id**: open the channel in [Telegram Web](https://web.telegram.org/a/) on a computer; the number after `#` in the address bar, like `-1001234567890` (minus sign included), is the id
+5. **Add the secrets**: **Workers & Pages** → `cf-imghub` → **Settings** → **Variables and Secrets** → **Add**, type **Secret**: `TG_BOT_TOKEN` (the token from step 1) and `TG_CHAT_ID` (the id from step 4), then **Deploy**
+6. **Pick a mode**: open `https://img.example.com/settings` and choose where new uploads go under **Storage**
+7. **Back up existing files** (optional): click **Back up** next to **Back up existing files to Telegram**. With many files Telegram rate-limits; the page waits and continues on its own, so keep it open
+
+Switching modes only affects later uploads. Deleting an image also deletes its messages in the channel.
+
 ### Changing passwords or settings later
 
 Everything lives under **Workers & Pages** → `cf-imghub` → **Settings** → **Variables and Secrets**:
@@ -105,14 +125,6 @@ Everything lives under **Workers & Pages** → `cf-imghub` → **Settings** → 
 
 Several domains: add more custom domains under the Worker's **Settings → Domains & Routes**; links follow the domain you opened the page on. List them under **Link domains** on the settings page and a globe button appears in the top bar of the upload and admin pages to switch which domain links use.
 
-Telegram storage (optional):
-
-1. Create a bot with [@BotFather](https://t.me/BotFather) and note the token
-2. Create a channel (private is fine) and add the bot as an admin with at least **Post messages** and **Delete messages**
-3. Find the channel id: open the channel in [Telegram Web](https://web.telegram.org/a/); the `-100…` number after `#` in the address bar is the id
-4. Under **Variables and Secrets** add two secrets, `TG_BOT_TOKEN` (the bot token) and `TG_CHAT_ID` (the channel id), then **Deploy**
-5. Open **Storage** on the settings page and choose where new uploads go; click **Back up** to copy existing files
-
 ### Troubleshooting
 
 | Symptom | Cause and fix |
@@ -122,6 +134,8 @@ Telegram storage (optional):
 | Script upload returns 401 | `UPLOAD_TOKEN` is missing or differs from the one in your script |
 | Images on your blog do not load | Hotlink protection is on but your blog is not in "Allowed sites" |
 | Downloaded images are smaller than uploaded and HDR is gone | Polish is enabled on the zone (Pro plans and up). Under the domain's **Rules**, add a Configuration Rule matching the image host's hostname with Polish off |
+| The last two **Storage** options are greyed out | `TG_BOT_TOKEN` or `TG_CHAT_ID` is missing or misspelled; click **Deploy** after fixing |
+| Backing up to Telegram fails | The bot isn't a channel admin or can't post messages, or `TG_CHAT_ID` is missing the leading `-100` |
 
 </details>
 
