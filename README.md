@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TG-Twilight/CF-ImgHub/fork"><img src="https://img.shields.io/github/forks/TG-Twilight/CF-ImgHub?style=social&label=Fork" alt="Fork"></a>
+  <a href="https://github.com/TG-Twilight/CF-ImgHub/fork"><img src="assets/fork.svg" alt="Fork 并部署"></a>
 </p>
 
 <p align="center">
