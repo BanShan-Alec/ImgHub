@@ -88,7 +88,7 @@
 
 ### 第 2 步：绑定自己的域名（推荐）
 
-根据官方说明，`workers.dev` 地址无法读取 Cloudflare 的边缘缓存，每次都要读 R2，因此正式使用强烈建议绑定域名：
+`workers.dev` 地址无法读取 Cloudflare 的边缘缓存，每次都要读 R2，因此正式使用强烈建议绑定域名：
 
 1. 打开 [Cloudflare 控制台](https://dash.cloudflare.com/)，左侧选「Workers 和 Pages」，点进 `cf-imghub`
 2. 进入「设置」→「域和路由」→「添加」→「自定义域」
