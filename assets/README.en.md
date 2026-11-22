@@ -48,6 +48,7 @@ The server never modifies file bytes.
 - **Readable names**: `ImgHub-20261121-153045-k7q2.avif` by default, or keep the original name
 - **Theme colors, light / dark, multiple domains, backgrounds, quick links**: all on the settings page; light or dark can be forced for everyone
 - **Telegram storage (optional)**: as a backup for R2, or Telegram only
+- **Location removal**: GPS is stripped from photos and videos before upload, leaving quality, Live Photos and HDR intact (on by default)
 - **Script uploads**: call `/api/upload` with a Bearer token
 - Material 3 Expressive UI, light / dark, 简体中文 / 繁體中文 / English
 

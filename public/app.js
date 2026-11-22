@@ -1,6 +1,8 @@
 // 上传页：登录 → 选文件 → 判断是否豁免 → 浏览器内转码 → 上传 → 记录
 import { t } from './i18n.js';
 import { parseLive, slimLive, transcodeVideo } from './live.js';
+import { stripGps } from './gps.js';
+import { makeThumb, putThumb, thumbUrl } from './thumb.js';
 import { $, api, canDo, confirmBox, copyText, errText, gate, icon, initLang, logout, morph, setShape, size, snack, snippet, topbarShadow, when, wavy } from './ui.js';
 
 const store = {
@@ -16,6 +18,7 @@ const opts = {
   edge: store.get('edge', '0'),
   naming: store.get('naming', 'std'), // 默认按图床规范命名
   live: store.get('live', '2'), // 实况照片：0 原样 / 1 精简 / 2 标准 / 3 紧凑 / 4 极致
+  gps: store.get('gps', '1'), // 去除定位（默认开）
 };
 // 实况主图的 JPEG 质量（原档约 q97，q90 时肉眼无差，见 AGENTS.md §5.5）
 const LIVE_Q = { high: 0.95, balanced: 0.9, small: 0.85 };
@@ -58,6 +61,16 @@ function syncOpts() {
   $('#namingHint').textContent = t($('#namingHint').dataset.i18n);
 }
 syncOpts();
+
+// 去除定位：放在默认折叠的「更多选项」里
+const gpsToggle = $('#gpsRow .toggle');
+const syncGps = () => gpsToggle.setAttribute('aria-checked', String(opts.gps === '1'));
+$('#gpsRow').onclick = () => {
+  opts.gps = opts.gps === '1' ? '0' : '1';
+  store.set('gps', opts.gps);
+  syncGps();
+};
+syncGps();
 
 // ---------- 拖放区：形状一直缓慢变形，拖进来时加速 ----------
 const drop = $('#drop');
@@ -223,7 +236,17 @@ async function processFile(file) {
       chips.push([/^rLive/.test(reason) ? 'live' : reason === 'rHdr' ? 'tertiary' : 'primary', `${t('keptOriginal')} · ${t(reason)}`], ['', size(file.size)]);
     }
 
+    if (opts.gps === '1') {
+      const clean = await stripGps(blob);
+      if (clean !== blob) {
+        blob = clean;
+        chips.push(['', t('gpsRemoved')]);
+      }
+    }
+
     const res = await upload(blob, name, (p) => ui.status(t('sUploading', { p }), p));
+    // 管理页 / 上传记录用的缩略图：先传好再记录，免得上传记录先去拉原图；失败不影响上传结果
+    await makeThumb(blob).then((th) => th && putThumb(res.key, th)).catch((err) => console.warn('thumb failed', err));
     const entry = { key: res.key, url: res.url, name, size: res.size, type: res.contentType, time: Date.now() };
     addHistory(entry);
     ui.done(entry, chips);
@@ -298,7 +321,7 @@ function expired() {
 }
 
 // ---------- 列表项 ----------
-function itemView({ name, thumb, type }) {
+function itemView({ name, thumb, type, fallback }) {
   const el = document.createElement('li');
   el.innerHTML = '<div class="thumb"></div><div class="item-body"><div class="item-name"></div><div class="item-meta"></div></div><div class="acts"></div>';
   const th = $('.thumb', el);
@@ -313,7 +336,9 @@ function itemView({ name, thumb, type }) {
     img.onload = free;
     img.onerror = () => {
       free();
-      img.replaceWith(icon('file'));
+      // 没有缩略图（旧记录）时退回原图
+      if (fallback && img.src !== new URL(fallback, location.href).href) img.src = fallback;
+      else img.replaceWith(icon('file'));
     };
     th.append(img);
   } else {
@@ -397,7 +422,7 @@ function renderHistory() {
   $('#historyEmpty').hidden = list.length > 0;
   $('#clearHistory').hidden = !list.length;
   for (const entry of list) {
-    const ui = itemView({ name: entry.name, thumb: entry.url, type: entry.type });
+    const ui = itemView({ name: entry.name, thumb: thumbUrl(entry.key), fallback: entry.url, type: entry.type });
     ui.done(entry, [['', size(entry.size)], ['', when(entry.time)]]);
     ul.append(ui.el);
   }

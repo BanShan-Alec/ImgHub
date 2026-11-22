@@ -27,9 +27,9 @@ const WEBP_OPTS = {
 let avif, webp;
 
 self.onmessage = async ({ data }) => {
-  const { id, bitmap, format, quality, maxEdge, q } = data; // q：直接指定 JPEG 质量（实况主图用）
+  const { id, bitmap, format, quality, maxEdge, q, thumb } = data; // q：直接指定 JPEG 质量（实况主图用）；thumb：缩略图短边像素
   try {
-    const { width, height } = fit(bitmap.width, bitmap.height, maxEdge);
+    const { width, height } = thumb ? fitThumb(bitmap.width, bitmap.height, thumb) : fit(bitmap.width, bitmap.height, maxEdge);
     const canvas = drawScaled(bitmap, width, height, format === 'jpeg');
     bitmap.close();
 
@@ -60,6 +60,12 @@ function fit(w, h, maxEdge) {
   const edge = Math.max(w, h);
   if (!maxEdge || edge <= maxEdge) return { width: w, height: h };
   const s = maxEdge / edge;
+  return { width: Math.max(1, Math.round(w * s)), height: Math.max(1, Math.round(h * s)) };
+}
+
+// 缩略图：短边缩到 short（管理页方格是裁切显示），长边最多 3 倍，不放大
+function fitThumb(w, h, short) {
+  const s = Math.min(1, short / Math.min(w, h), (short * 3) / Math.max(w, h));
   return { width: Math.max(1, Math.round(w * s)), height: Math.max(1, Math.round(h * s)) };
 }
 

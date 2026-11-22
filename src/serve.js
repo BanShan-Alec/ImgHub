@@ -30,6 +30,8 @@ export async function serveFile(request, env, ctx, url) {
 
   // 防盗链放在查缓存之前：缓存里的回应不分来源，判断只看 Referer 和设置（设置在内存里缓存，不额外耗时）
   const settings = await getSettings(env);
+  // 已删除：其他机房的 Cache API 里可能还有，先挡掉；也不再回源旧图床
+  if (settings.goneSet.has(key)) return notFound();
   if (settings.hotlink && !settings.exemptSet.has(key) && !refererAllowed(request, url, settings)) {
     return plain(403, 'Hotlinking not allowed');
   }

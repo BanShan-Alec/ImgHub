@@ -1,5 +1,6 @@
 // 管理页：管理员登录 → 列出桶内全部文件 → 搜索、筛选、预览、复制、批量删除。其余设置在设置页（settings.js）
 import { t } from './i18n.js';
+import { makeThumb, putThumb, thumbUrl } from './thumb.js';
 import { $, api, confirmBox, copyText, errText, gate, icon, initLang, linkOf, loader, logout, setDomains, setShape, size, snack, snippet, timeOf, topbarShadow, when } from './ui.js';
 
 const PAGE = 120; // 每次渲染的卡片数，避免文件多时 DOM 过大
@@ -10,6 +11,10 @@ let filter = 'all';
 let query = '';
 const selected = new Set();
 let current = null;
+let thumbs = new Set(); // 已有缩略图的 key
+const SMALL = 1024 * 1024; // 没有缩略图时，这么小的原图直接拿来显示
+// 浏览器解不了、补不出缩略图的类型
+const NO_THUMB = /^image\/(heic|heif|tiff|jxl|svg)/i;
 
 initLang();
 topbarShadow();
@@ -18,6 +23,7 @@ $('#logout').onclick = logout;
 $('#refresh').onclick = () => load();
 document.addEventListener('langchange', () => {
   render();
+  if (!filling) syncThumbFill();
   syncSelection();
   applySettings(settings);
 });
@@ -78,6 +84,7 @@ async function load() {
   });
   api('/api/settings').then((r) => r.ok && applySettings(r.body));
 
+  thumbs = new Set();
   let cursor = '';
   do {
     const r = await api(`/api/list?limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
@@ -88,11 +95,13 @@ async function load() {
       return snack(errText(r), { error: true });
     }
     all.push(...r.body.items);
+    for (const k of r.body.thumbs ?? []) thumbs.add(k);
     cursor = r.body.cursor;
   } while (cursor);
   all.sort((a, b) => timeOf(b) - timeOf(a));
   $('#refresh').disabled = false;
   render();
+  syncThumbFill();
 }
 
 function render() {
@@ -135,14 +144,8 @@ function tile(o, i) {
   $('.flag', el).append(icon('link'));
   $('.flag', el).title = t('allowHotlink');
   const media = $('.media', el);
-  if (kindOf(o) === 'image') {
-    const img = new Image();
-    img.alt = '';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    img.src = o.url;
-    img.onerror = () => img.replaceWith(icon('image'));
-    media.append(img);
+  if (kindOf(o) === 'image' && (thumbs.has(o.key) || o.size <= SMALL)) {
+    media.append(tileImg(o));
   } else {
     media.append(icon(kindOf(o) === 'video' ? 'movie' : 'file'));
   }
@@ -166,6 +169,59 @@ function tile(o, i) {
   };
   return el;
 }
+
+// 方格里的图：有缩略图用缩略图，否则用（较小的）原图
+function tileImg(o) {
+  const img = new Image();
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.src = thumbs.has(o.key) ? thumbUrl(o.key) : o.url;
+  img.onerror = () => img.replaceWith(icon('image'));
+  return img;
+}
+
+// ---------- 补缩略图：给还没有缩略图的旧文件在浏览器里生成 ----------
+let filling = false;
+const missingThumbs = () => all.filter((o) => kindOf(o) === 'image' && !NO_THUMB.test(o.contentType) && !thumbs.has(o.key));
+function syncThumbFill(done = 0, total = 0) {
+  const b = $('#thumbFill');
+  const n = missingThumbs().length;
+  b.hidden = !filling && !n;
+  b.disabled = filling;
+  $('.lbl', b).textContent = filling ? t('thumbFilling', { done, total }) : t('thumbFill', { n });
+}
+$('#thumbFill').onclick = async () => {
+  if (filling) return;
+  const queue = missingThumbs();
+  const total = queue.length;
+  let done = 0;
+  let failed = 0;
+  filling = true;
+  syncThumbFill(0, total);
+  const worker = async () => {
+    for (let o; (o = queue.shift()); ) {
+      try {
+        const res = await fetch(o.url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const th = await makeThumb(await res.blob());
+        if (!th) throw new Error('undecodable');
+        await putThumb(o.key, th);
+        thumbs.add(o.key);
+        const el = [...document.querySelectorAll('.tile')].find((x) => x.dataset.key === o.key);
+        if (el) $('.media', el).replaceChildren(tileImg(o));
+      } catch (err) {
+        failed++;
+        console.warn('thumb failed', o.key, err);
+      }
+      syncThumbFill(++done, total);
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  filling = false;
+  syncThumbFill();
+  snack(t('thumbFillDone', { n: done - failed, failed }), { error: failed > 0 });
+};
 
 // ---------- 选择 ----------
 function toggle(key, el) {

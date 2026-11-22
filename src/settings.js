@@ -11,6 +11,9 @@
 // mode = auto（访客可自己切换深浅色，默认跟随系统）| light | dark（强制，所有访客生效，切换按钮隐藏）。登录前就要用，经 /api/site 公开。
 // name：站点名称（页面标题、顶栏、页脚），空字符串 = 默认 CF ImgHub；登录前就要用，经 /api/site 公开。
 // links：页脚里额外的友情链接 [{name, url}]（秋风塬上、秋风广告规则两站是内建的，写死在前端 ui.js，不能移除）。bg 与 links 登录前就要用，经 GET /api/site 公开（见 siteInfo）。
+// gone：已删除的 key 与删除时间 [[key, ms]]。读路径在查缓存之前比对，所以删除 30 秒内全球生效
+// （Cache API 只能清当前机房，其他机房的缓存最长留一年）；也挡住旧 key 被删后又从旧图床回源迁移回来。
+// 保留 GONE_TTL（略长于缓存一年），最多 MAX_GONE 条；不对外公开。
 // 单张设置不写进对象的 customMetadata，因为图片回应会在 Cache API 里缓存一年，
 // 改了 metadata 也清不掉其他机房的缓存；放在设置里则所有机房 30 秒内生效。
 import { configStore } from './stores.js';
@@ -40,6 +43,8 @@ export const MAX_BG = 5;
 export const MAX_LINKS = 10;
 export const MAX_NAME = 40;
 export const BG_INTERVALS = [5, 10, 20, 40];
+const GONE_TTL = 400 * 86400 * 1000;
+const MAX_GONE = 20000;
 
 let memo = null;
 let memoAt = 0;
@@ -70,7 +75,20 @@ export async function saveSettings(env, next) {
   return data;
 }
 
-const withSets = (d) => ({ ...d, exemptSet: new Set(d.exempt), domainSet: new Set(d.domains) });
+const withSets = (d) => ({ ...d, exemptSet: new Set(d.exempt), domainSet: new Set(d.domains), goneSet: new Set(d.gone.map(([k]) => k)) });
+
+// 已删除名单：去掉过期的、重复的（保留最新一次），按时间新的在前截断
+function normGone(list) {
+  if (!Array.isArray(list)) return [];
+  const now = Date.now();
+  const map = new Map();
+  for (const e of list) {
+    if (!Array.isArray(e) || typeof e[0] !== 'string' || !e[0] || e[0].startsWith('.') || !Number.isFinite(e[1])) continue;
+    if (now - e[1] > GONE_TTL) continue;
+    if (!(map.get(e[0]) >= e[1])) map.set(e[0], e[1]);
+  }
+  return [...map].sort((a, b) => b[1] - a[1]).slice(0, MAX_GONE);
+}
 
 // 只保留已知字段；allow / domains 规范化成主机名，exempt 去重
 function normalize(d) {
@@ -81,6 +99,7 @@ function normalize(d) {
     rss: typeof d?.rss === 'boolean' ? d.rss : DEFAULTS.rss,
     allow: Array.isArray(d?.allow) ? [...new Set(d.allow.map(normSite).filter(Boolean))].slice(0, MAX_SITES) : [...DEFAULTS.allow],
     exempt: Array.isArray(d?.exempt) ? [...new Set(d.exempt.filter((k) => typeof k === 'string' && k))] : [],
+    gone: normGone(d?.gone),
     domains: Array.isArray(d?.domains) ? [...new Set(d.domains.map(normSite).filter(Boolean))].slice(0, MAX_DOMAINS) : [],
     bg: {
       urls: [...new Set((Array.isArray(bg.urls) ? bg.urls : Array.isArray(bg.keys) ? bg.keys.filter(isFileKey).map((k) => `/file/${encodeURIComponent(k)}`) : []).map(normBgUrl).filter(Boolean))].slice(0, MAX_BG),

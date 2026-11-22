@@ -2,7 +2,7 @@
 // 错误只返回代码（error 字段），由前端按语言翻译
 import { pickContentType } from './mime.js';
 import { allStores, BRAND, configStore, keyTime, storesFor, writeStore } from './stores.js';
-import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, STORAGE_MODES, THEME_MODES, getSettings, normThemeColor, normBgUrl, normLink, normName, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
+import { BG_INTERVALS, isFileKey, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, STORAGE_MODES, THEME_MODES, getSettings, normThemeColor, normBgUrl, normLink, normName, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
 import { RSS_READERS } from './serve.js';
 import { hasRole, identify, login, logoutCookie, sameOrigin } from './auth.js';
 import { SIDECAR, TgError, isStub, realSize, tgDelete, tgPut, tgReady } from './telegram.js';
@@ -51,6 +51,20 @@ export async function handleApi(request, env, ctx, url) {
     if (!hasRole(role, 'admin') && !recent(key)) return json({ error: 'forbidden' }, 403);
     await removeKeys(env, url, [key]);
     return json({ ok: true, key });
+  }
+
+  // 缩略图（浏览器生成的 WebP，见 public/thumb.js）：登录即可读；上传角色只能给 24 小时内的文件写
+  if (path.startsWith('/api/thumb/') && (method === 'GET' || method === 'POST')) {
+    let key;
+    try {
+      key = decodeURIComponent(path.slice('/api/thumb/'.length));
+    } catch {
+      return json({ error: 'bad_key' }, 400);
+    }
+    if (!isFileKey(key)) return json({ error: 'bad_key' }, 400);
+    if (method === 'GET') return getThumb(env, key);
+    if (!hasRole(role, 'admin') && !recent(key)) return json({ error: 'forbidden' }, 403);
+    return putThumb(env, key, request);
   }
 
   if (!hasRole(role, 'admin')) return json({ error: 'forbidden' }, 403);
@@ -248,10 +262,12 @@ async function upload(request, env, ctx, url) {
   const store = writeStore(env);
   const original = url.searchParams.get('naming') === 'original';
 
-  // 冲突概率极低（同毫秒同名 / 同秒且 20 位随机码相同），仍然检查一下
+  // 冲突概率极低（同毫秒同名 / 同秒且 20 位随机码相同），仍然检查一下；已删除名单里的 key 也不复用（读路径会挡掉）
+  const { goneSet } = await getSettings(env);
+  const taken = async (k) => goneSet.has(k) || Boolean(await store.bucket.head(k));
   let ts = Date.now();
   let key = original ? `${ts}_${name}` : stdName(ts, name);
-  for (let i = 0; i < 5 && (await store.bucket.head(key)); i++) key = original ? `${++ts}_${name}` : stdName(ts, name);
+  for (let i = 0; i < 5 && (await taken(key)); i++) key = original ? `${++ts}_${name}` : stdName(ts, name);
 
   const fileName = original ? name : key;
   const httpMetadata = { contentType, contentDisposition: `inline; filename*=UTF-8''${encodeURIComponent(fileName)}` };
@@ -292,6 +308,41 @@ export function stdName(ts, name) {
   return `${BRAND}-${stamp}-${rand}${ext ? `.${ext}` : ''}`;
 }
 
+export const THUMB = '.thumb/';
+const THUMB_MAX = 512 * 1024;
+
+// 缩略图与原图放在同一个桶（列表时顺带列出，管理页据此知道哪些已有缩略图）
+async function getThumb(env, key) {
+  for (const s of storesFor(env, key)) {
+    const obj = await s.bucket.get(THUMB + key);
+    if (!obj) continue;
+    return new Response(obj.body, {
+      headers: {
+        'Content-Type': 'image/webp',
+        'Content-Length': String(obj.size),
+        'Cache-Control': 'private, max-age=31536000, immutable',
+        'X-Content-Type-Options': 'nosniff',
+        ETag: obj.httpEtag,
+      },
+    });
+  }
+  return json({ error: 'not_found' }, 404);
+}
+
+async function putThumb(env, key, request) {
+  const length = Number(request.headers.get('Content-Length'));
+  if (!(length > 12 && length <= THUMB_MAX)) return json({ error: 'bad_request' }, 400);
+  const buf = new Uint8Array(await request.arrayBuffer());
+  const ascii = (a, b) => String.fromCharCode(...buf.subarray(a, b));
+  if (buf.length > THUMB_MAX || ascii(0, 4) !== 'RIFF' || ascii(8, 12) !== 'WEBP') return json({ error: 'bad_request' }, 400);
+  for (const s of storesFor(env, key)) {
+    if (!(await s.bucket.head(key))) continue;
+    await s.bucket.put(THUMB + key, buf, { httpMetadata: { contentType: 'image/webp' } });
+    return json({ ok: true });
+  }
+  return json({ error: 'not_found' }, 404);
+}
+
 // GET /api/list?cursor=&limit=：只列当前写入桶，按 R2 的字典序（即时间顺序）
 async function list(env, url) {
   const limit = Math.min(Number(url.searchParams.get('limit')) || 100, 1000);
@@ -303,6 +354,8 @@ async function list(env, url) {
     include: ['httpMetadata', 'customMetadata'],
   });
   return json({
+    // 「.」开头的内部对象排在最前面；其中 .thumb/ 告诉前端哪些文件已有缩略图
+    thumbs: res.objects.filter((o) => o.key.startsWith(THUMB)).map((o) => o.key.slice(THUMB.length)),
     items: res.objects.filter((o) => !o.key.startsWith('.')).map((o) => ({
       key: o.key,
       name: o.customMetadata?.name,
@@ -329,17 +382,23 @@ async function removeKeys(env, url, keys) {
       for (const s of stores) if (isStub(await s.bucket.head(key))) await collect(await s.bucket.get(key));
     }),
   );
-  await Promise.all([...stores.map((s) => s.bucket.delete(keys)), main.delete(keys.map((k) => SIDECAR + k))]);
+  await Promise.all([
+    ...stores.map((s) => s.bucket.delete([...keys, ...keys.map((k) => THUMB + k)])),
+    main.delete(keys.map((k) => SIDECAR + k)),
+  ]);
   if (msgs.length && tgReady(env)) {
     await tgDelete(env, msgs).catch((err) => console.warn(JSON.stringify({ event: 'tg-delete-failed', error: err.message })));
   }
-  // 顺手把它们从防盗链豁免名单里拿掉（背景图是自由填写的地址，不跟着删）
+  // 记进已删除名单（其他机房的缓存由读路径挡掉），顺手从防盗链豁免名单里拿掉（背景图是自由填写的地址，不跟着删）
   const cur = await getSettings(env, { fresh: true });
   const origins = [...new Set([url.origin, ...cur.domains.map((d) => `https://${d}`)])];
   const gone = new Set(keys);
-  if (keys.some((k) => cur.exemptSet.has(k))) {
-    await saveSettings(env, { ...cur, exempt: cur.exempt.filter((k) => !gone.has(k)) });
-  }
+  const now = Date.now();
+  await saveSettings(env, {
+    ...cur,
+    exempt: cur.exempt.filter((k) => !gone.has(k)),
+    gone: [...keys.filter((k) => !k.startsWith('.')).map((k) => [k, now]), ...cur.gone],
+  });
   await Promise.all(
     keys.flatMap((key) => {
       const path = `/file/${encodeURIComponent(key)}`;
