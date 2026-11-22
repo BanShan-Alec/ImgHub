@@ -183,6 +183,12 @@ export function initLang() {
   for (const b of document.querySelectorAll('[data-lang-menu]')) langMenu(b);
   for (const b of document.querySelectorAll('[data-mode-menu]')) modeMenu(b);
   moreMenu();
+  // Logo 一律回上传页；已在上传页时只滚回顶部，不重新载入（免得丢掉上传队列）
+  $('.topbar .brand')?.addEventListener('click', (e) => {
+    if (location.pathname !== '/') return;
+    e.preventDefault();
+    scrollTo({ top: 0, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  });
 }
 
 let menuSeq = 0;

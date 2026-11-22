@@ -257,9 +257,13 @@ svg.icon { width: 24px; height: 24px; fill: currentColor; flex: none; display: b
 .brand .mark { width: 34px; height: 34px; flex: none; transition: transform var(--d-default) var(--spring); }
 .brand:hover .mark { transform: rotate(-12deg) scale(1.08); }
 
-/* Logo：枫橙方块 + 白枫叶 + 左下角上传云（缺口是透明的） */
+/* Logo：枫橙方块 + 白枫叶 + 左下角上传云（缺口是透明的）。设置里开了「跟随主题色」时（html[data-tint]）改用主色 */
 .logo-bg, .logo-cloud { fill: var(--maple); }
 .logo-leaf, .logo-arrow { fill: #fff; }
+:root[data-tint] .logo-bg, :root[data-tint] .logo-cloud { fill: var(--primary); }
+:root[data-tint] .logo-leaf, :root[data-tint] .logo-arrow { fill: var(--on-primary); }
+:root[data-tint] .brand, :root[data-tint] .foot-brand { color: var(--primary); }
+:root[data-tint] .foot-label svg { fill: var(--primary); }
 .brand .tag { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: var(--r-full); background: var(--tertiary-container); color: var(--on-tertiary-container); letter-spacing: 0.04em; }
 
 /* ---------- 菜单（popover） ---------- */
@@ -303,7 +307,7 @@ dialog.dlg p { color: var(--on-surface-variant); margin: 16px 0 0; word-break: b
 @keyframes fade { from { opacity: 0; } }
 
 /* ---------- 登录闸门 ---------- */
-body.locked > :not(.gate):not(.snackbar):not(.backdrop):not(.foot) { display: none !important; }
+body.locked > :not(.gate):not(.snackbar):not(.backdrop):not(.foot):not(.menu) { display: none !important; }
 .gate {
   flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 64px 24px 24px;
 }

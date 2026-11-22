@@ -273,8 +273,11 @@ function renderTheme() {
       return b;
     }),
   );
+  setToggle($('#themeLogo .toggle'), cur.logo);
   $('#themeModeHint').textContent = t(THEME_MODES.find(([m]) => m === cur.mode)[2]);
 }
+
+$('#themeLogo').onclick = () => save({ theme: { logo: !settings.theme.logo } }, $('#themeLogo .toggle'));
 
 // ---------- 存储：仅 R2 / R2 + Telegram 备份 / 仅 Telegram ----------
 const MODES = [
