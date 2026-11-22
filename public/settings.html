@@ -14,7 +14,7 @@
 </head>
 <body class="locked" data-title="settingsTitle">
 <header class="topbar">
-  <a class="brand" href="/"><i data-icon="logo" class="mark"></i><span class="name">CF ImgHub</span><span class="tag" data-i18n="tagSettings"></span></a>
+  <a class="brand" href="/"><i data-icon="logo" class="mark"></i><span class="name" data-brand>CF ImgHub</span><span class="tag" data-i18n="tagSettings"></span></a>
   <button class="btn icon state ovf" data-mode-menu data-i18n-tip="colorMode" hidden><i data-icon="brightnessAuto"></i></button>
   <button class="btn icon state ovf" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
   <a class="btn icon state ovf gh-top" href="https://github.com/TG-Twilight/CF-ImgHub" target="_blank" rel="noopener" data-i18n-tip="github"><i data-icon="github"></i></a>
@@ -79,6 +79,11 @@
       <span class="morph ph-icon t2" data-shape="cookie7"><i data-icon="palette"></i></span>
       <span><h2 class="title-l" data-i18n="themeTitle"></h2><small data-i18n="themeNote"></small></span>
     </div>
+    <div class="sub-head"><b data-i18n="siteName"></b><small data-i18n="siteNameNote"></small></div>
+    <form class="site-add" id="nameForm">
+      <label class="search"><i data-icon="edit"></i><input id="siteName" placeholder="CF ImgHub" autocomplete="off" maxlength="40" data-i18n-tip="siteName"></label>
+      <button class="btn tonal state" type="submit"><i data-icon="check"></i><span class="lbl" data-i18n="save"></span></button>
+    </form>
     <div class="swatches" id="swatches" role="radiogroup" data-i18n-tip="themeColor"></div>
     <div class="setting" data-theme-flag="glow">
       <span><b data-i18n="themeGlow"></b><small data-i18n="themeGlowNote"></small></span>

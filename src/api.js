@@ -2,7 +2,7 @@
 // 错误只返回代码（error 字段），由前端按语言翻译
 import { pickContentType } from './mime.js';
 import { allStores, BRAND, configStore, keyTime, storesFor, writeStore } from './stores.js';
-import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, STORAGE_MODES, THEME_MODES, getSettings, normThemeColor, normBgUrl, normLink, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
+import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, STORAGE_MODES, THEME_MODES, getSettings, normThemeColor, normBgUrl, normLink, normName, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
 import { RSS_READERS } from './serve.js';
 import { hasRole, identify, login, logoutCookie, sameOrigin } from './auth.js';
 import { SIDECAR, TgError, isStub, realSize, tgDelete, tgPut, tgReady } from './telegram.js';
@@ -58,13 +58,18 @@ export async function handleApi(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return stats(env);
   if (path === '/api/settings' && method === 'GET') return json(settingsOut(env, await getSettings(env)));
   if (path === '/api/settings' && method === 'POST') {
-    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {urls?, login?, upload?, interval?}, links?: [{name, url}], theme?: {color?, mode?, logo?, glow?}}，至少给一项；bg、theme 为局部合并
+    // {name?: string, hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {urls?, login?, upload?, interval?}, links?: [{name, url}], theme?: {color?, mode?, logo?, glow?}}，至少给一项；bg、theme 为局部合并
     const body = await request.json().catch(() => null);
     const next = {};
     for (const f of ['hotlink', 'rss']) {
       if (!(f in (body ?? {}))) continue;
       if (typeof body[f] !== 'boolean') return json({ error: 'bad_request' }, 400);
       next[f] = body[f];
+    }
+    if ('name' in (body ?? {})) {
+      const name = normName(body.name);
+      if (name === null) return json({ error: 'bad_request' }, 400);
+      next.name = name;
     }
     if ('storage' in (body ?? {})) {
       if (!STORAGE_MODES.includes(body.storage)) return json({ error: 'bad_request' }, 400);

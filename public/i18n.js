@@ -1,9 +1,9 @@
-// 界面文案：zh-Hans / zh-Hant / en。{name} 为占位符
+// 界面文案：zh-Hans / zh-Hant / en。{name} 为占位符；{brand} 是站点名称（后台可改，见 setBrand）
 const DICT = {
   'zh-Hans': {
-    title: 'CF ImgHub 图床',
+    title: '{brand} 图床',
     tagHome: '图床',
-    adminTitle: 'CF ImgHub 后台管理',
+    adminTitle: '{brand} 后台管理',
     tagAdmin: '后台管理',
     language: '语言',
     more: '更多',
@@ -134,6 +134,7 @@ const DICT = {
     sitesPh: '如 blog.example.com',
     sitesEmpty: '还没有放行任何网站',
     add: '添加',
+    save: '保存',
     removeSite: '移除 {site}',
     e_bad_site: '不是有效的域名：{site}',
     domainsTitle: '链接域名',
@@ -146,7 +147,7 @@ const DICT = {
     allowHotlinkNote: '不受防盗链限制',
     saved: '设置已保存',
     origName: '原文件名',
-    settingsTitle: 'CF ImgHub 图床设置',
+    settingsTitle: '{brand} 图床设置',
     tagSettings: '图床设置',
     toSettings: '设置',
     github: 'GitHub 仓库',
@@ -158,8 +159,10 @@ const DICT = {
     modeAuto: '跟随系统',
     modeLight: '浅色',
     modeDark: '深色',
+    siteName: '站点名称',
+    siteNameNote: '用于标题、顶栏和页脚，留空即默认',
     themeTitle: '主题',
-    themeNote: '配色与深浅色，对所有页面生效',
+    themeNote: '站名、配色与深浅色，对所有页面生效',
     themeColor: '主题色',
     themeGlow: '渐层背景',
     themeGlowNote: '各页面角落的主题色光晕，含登录页',
@@ -238,9 +241,9 @@ const DICT = {
     e_server: '服务器错误 {s}',
   },
   'zh-Hant': {
-    title: 'CF ImgHub 圖床',
+    title: '{brand} 圖床',
     tagHome: '圖床',
-    adminTitle: 'CF ImgHub 後臺管理',
+    adminTitle: '{brand} 後臺管理',
     tagAdmin: '後臺管理',
     language: '語言',
     more: '更多',
@@ -371,6 +374,7 @@ const DICT = {
     sitesPh: '如 blog.example.com',
     sitesEmpty: '還沒有放行任何網站',
     add: '新增',
+    save: '儲存',
     removeSite: '移除 {site}',
     e_bad_site: '不是有效的網域：{site}',
     domainsTitle: '連結網域',
@@ -383,7 +387,7 @@ const DICT = {
     allowHotlinkNote: '不受防盜連限制',
     saved: '設定已儲存',
     origName: '原檔名',
-    settingsTitle: 'CF ImgHub 圖床設置',
+    settingsTitle: '{brand} 圖床設置',
     tagSettings: '圖床設置',
     toSettings: '設定',
     github: 'GitHub 儲存庫',
@@ -395,8 +399,10 @@ const DICT = {
     modeAuto: '跟隨系統',
     modeLight: '淺色',
     modeDark: '深色',
+    siteName: '站點名稱',
+    siteNameNote: '用於標題、頂欄和頁腳，留空即預設',
     themeTitle: '主題',
-    themeNote: '配色與深淺色，對所有頁面生效',
+    themeNote: '站名、配色與深淺色，對所有頁面生效',
     themeColor: '主題色',
     themeGlow: '漸層背景',
     themeGlowNote: '各頁面角落的主題色光暈，含登入頁',
@@ -475,9 +481,9 @@ const DICT = {
     e_server: '伺服器錯誤 {s}',
   },
   en: {
-    title: 'CF ImgHub',
+    title: '{brand}',
     tagHome: 'Image Host',
-    adminTitle: 'CF ImgHub Admin',
+    adminTitle: '{brand} Admin',
     tagAdmin: 'Admin',
     language: 'Language',
     more: 'More',
@@ -608,6 +614,7 @@ const DICT = {
     sitesPh: 'e.g. blog.example.com',
     sitesEmpty: 'No sites allowed yet',
     add: 'Add',
+    save: 'Save',
     removeSite: 'Remove {site}',
     e_bad_site: 'Not a valid domain: {site}',
     domainsTitle: 'Link domains',
@@ -620,7 +627,7 @@ const DICT = {
     allowHotlinkNote: 'Ignores hotlink protection',
     saved: 'Settings saved',
     origName: 'Original name',
-    settingsTitle: 'CF ImgHub Settings',
+    settingsTitle: '{brand} Settings',
     tagSettings: 'Settings',
     toSettings: 'Settings',
     github: 'GitHub repository',
@@ -632,8 +639,10 @@ const DICT = {
     modeAuto: 'System',
     modeLight: 'Light',
     modeDark: 'Dark',
+    siteName: 'Site name',
+    siteNameNote: 'Shown in the title, top bar and footer. Leave empty for the default',
     themeTitle: 'Theme',
-    themeNote: 'Colors and light/dark mode for all pages',
+    themeNote: 'Site name, colors and light/dark mode for all pages',
     themeColor: 'Theme color',
     themeGlow: 'Gradient background',
     themeGlowNote: 'Theme-colored glow in the corners of every page, including sign-in',
@@ -729,6 +738,16 @@ export function detectLang() {
 let lang = 'en';
 export const getLang = () => lang;
 
+// 站点名称：空 = 默认名。改了就重写页面标题与所有 [data-brand]
+export const DEFAULT_BRAND = 'CF ImgHub';
+let brand = DEFAULT_BRAND;
+export const getBrand = () => brand;
+export function setBrand(name) {
+  brand = (typeof name === 'string' && name.trim()) || DEFAULT_BRAND;
+  document.title = t(document.body.dataset.title || 'title');
+  for (const el of document.querySelectorAll('[data-brand]')) el.textContent = brand;
+}
+
 export function setLang(l) {
   lang = DICT[l] ? l : 'en';
   localStorage.setItem('imghub.lang', lang);
@@ -750,5 +769,5 @@ export function applyI18n(root) {
 
 export function t(key, vars = {}) {
   const s = DICT[lang][key] ?? DICT.en[key] ?? key;
-  return s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+  return s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? (k === 'brand' ? brand : ''));
 }

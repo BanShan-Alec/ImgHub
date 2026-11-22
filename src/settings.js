@@ -9,6 +9,7 @@
 // 旧版存的是 keys（本图床的 key），读取时自动转成 /file/<key>。
 // theme：{color, mode, logo, glow}。glow：各页（含登录页）的撞色渐层背景，默认 true。logo=true 时 Logo 与站名改用主题色（默认 false = 枫橙 Logo）。color 是预设名（见 THEME_COLORS，配色在前端 theme.js 生成）或 #rrggbb 自定义种子色；
 // mode = auto（访客可自己切换深浅色，默认跟随系统）| light | dark（强制，所有访客生效，切换按钮隐藏）。登录前就要用，经 /api/site 公开。
+// name：站点名称（页面标题、顶栏、页脚），空字符串 = 默认 CF ImgHub；登录前就要用，经 /api/site 公开。
 // links：页脚里额外的友情链接 [{name, url}]（秋风塬上、秋风广告规则两站是内建的，写死在前端 ui.js，不能移除）。bg 与 links 登录前就要用，经 GET /api/site 公开（见 siteInfo）。
 // 单张设置不写进对象的 customMetadata，因为图片回应会在 Cache API 里缓存一年，
 // 改了 metadata 也清不掉其他机房的缓存；放在设置里则所有机房 30 秒内生效。
@@ -18,6 +19,7 @@ export const SETTINGS_KEY = '.imghub/settings.json';
 const TTL = 30 * 1000;
 // 没有设置对象时：防盗链关闭，放行名单预置三项（本站两个博客 + 示例域名，部署者在管理页改成自己的）
 const DEFAULTS = {
+  name: '',
   hotlink: false,
   rss: true,
   allow: ['awads.cc', 'awavenue.top', 'example.com'],
@@ -36,6 +38,7 @@ export const MAX_SITES = 200;
 export const MAX_DOMAINS = 20;
 export const MAX_BG = 5;
 export const MAX_LINKS = 10;
+export const MAX_NAME = 40;
 export const BG_INTERVALS = [5, 10, 20, 40];
 
 let memo = null;
@@ -73,6 +76,7 @@ const withSets = (d) => ({ ...d, exemptSet: new Set(d.exempt), domainSet: new Se
 function normalize(d) {
   const bg = d?.bg && typeof d.bg === 'object' ? d.bg : {};
   return {
+    name: normName(d?.name) ?? DEFAULTS.name,
     hotlink: typeof d?.hotlink === 'boolean' ? d.hotlink : DEFAULTS.hotlink,
     rss: typeof d?.rss === 'boolean' ? d.rss : DEFAULTS.rss,
     allow: Array.isArray(d?.allow) ? [...new Set(d.allow.map(normSite).filter(Boolean))].slice(0, MAX_SITES) : [...DEFAULTS.allow],
@@ -93,6 +97,13 @@ function normalize(d) {
       glow: typeof d?.theme?.glow === 'boolean' ? d.theme.glow : DEFAULTS.theme.glow,
     },
   };
+}
+
+// 站点名称：去掉首尾与连续空白，最多 40 字；空字符串表示用默认名；不是字符串或过长返回 null
+export function normName(n) {
+  if (typeof n !== 'string') return null;
+  const s = n.replace(/\s+/g, ' ').trim();
+  return [...s].length > MAX_NAME ? null : s;
 }
 
 export const isFileKey = (k) => typeof k === 'string' && k.length > 0 && k.length <= 1024 && !k.startsWith('.');
@@ -140,10 +151,10 @@ export function normSite(input) {
 }
 
 export function publicSettings(s) {
-  return { hotlink: s.hotlink, rss: s.rss, allow: s.allow, exempt: s.exempt, domains: s.domains, bg: s.bg, links: s.links, storage: s.storage, theme: s.theme };
+  return { name: s.name, hotlink: s.hotlink, rss: s.rss, allow: s.allow, exempt: s.exempt, domains: s.domains, bg: s.bg, links: s.links, storage: s.storage, theme: s.theme };
 }
 
-// 不登录也能读的部分（登录页背景、页脚、主题）
+// 不登录也能读的部分（站点名称、登录页背景、页脚、主题）
 export function siteInfo(s) {
-  return { bg: s.bg, links: s.links, theme: s.theme };
+  return { name: s.name, bg: s.bg, links: s.links, theme: s.theme };
 }

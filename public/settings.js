@@ -1,4 +1,4 @@
-// 设置页（管理员）：防盗链与 RSS 阅读器放行、放行网站、链接域名、存储（R2 / Telegram）、主题与深浅色、登录页/上传页背景、页脚友情链接。
+// 设置页（管理员）：站点名称、防盗链与 RSS 阅读器放行、放行网站、链接域名、存储（R2 / Telegram）、主题与深浅色、登录页/上传页背景、页脚友情链接。
 // 每项改动立即保存（POST /api/settings），服务端负责规范化与校验
 import { t } from './i18n.js';
 import { $, api, errText, gate, icon, initLang, logout, setDomains, setShape, setSite, snack, topbarShadow } from './ui.js';
@@ -48,8 +48,16 @@ function apply(s) {
   renderStorage();
   renderTheme();
   setDomains(s.domains);
-  setSite({ bg: s.bg, links: s.links, theme: s.theme });
+  $('#siteName').value = s.name;
+  setSite({ name: s.name, bg: s.bg, links: s.links, theme: s.theme });
 }
+
+// ---------- 站点名称：留空 = 默认名 ----------
+$('#nameForm').onsubmit = (e) => {
+  e.preventDefault();
+  const v = $('#siteName').value.trim();
+  if (v !== settings.name) save({ name: v }, $('#nameForm button'));
+};
 
 // ---------- 开关（整行可点；开关本身的点击会冒泡上来） ----------
 for (const row of document.querySelectorAll('[data-flag]')) {
