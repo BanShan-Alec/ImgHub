@@ -1,10 +1,10 @@
 // 主题与深浅色：在 <head> 里同步执行（普通脚本，不是 module），首屏就套上，不闪色。
 // 配色：枫橙（maple）用 style.css 里手调的色板；其他颜色由种子色生成 M3 风格的色调配色——
 // 在 OKLCH 里定色相与彩度，按 M3 色调（tone = CIE L*）解出明度，超出 sRGB 时降彩度。
-// 设置来源：站点设置 {color, mode, logo}（管理员定，经 /api/site 下发并缓存在 localStorage）+ 访客自选的深浅色。
+// 设置来源：站点设置 {color, mode, logo, glow}（管理员定，经 /api/site 下发并缓存在 localStorage）+ 访客自选的深浅色。
 // mode 不是 auto 时为强制，访客的选择无效，切换按钮隐藏。
 (() => {
-  const SITE_KEY = 'imghub.theme'; // 站点设置缓存 {color, mode, logo}
+  const SITE_KEY = 'imghub.theme'; // 站点设置缓存 {color, mode, logo, glow}
   const MODE_KEY = 'imghub.mode'; // 访客自选：auto | light | dark
   const PRESETS = {
     maple: '#fc4d00',
@@ -138,6 +138,7 @@
     root.dataset.mode = mode;
     root.dataset.forced = forced() ? '1' : '';
     root.toggleAttribute('data-tint', site.logo === true); // Logo 与站名跟随主题色
+    root.toggleAttribute('data-glow', site.glow !== false); // 渐层背景，默认开
     for (const k of Object.keys(ROLES)) root.style.removeProperty(`--${k}`);
     const seed = seedOf(site.color);
     if (seed !== PRESETS.maple) for (const [k, v] of Object.entries(palette(seed, mode === 'dark'))) root.style.setProperty(`--${k}`, v);
@@ -167,8 +168,8 @@
     resolved,
     // 站点设置（来自 /api/site 或设置页保存后）
     setSite(t) {
-      const next = { color: t?.color || 'maple', mode: t?.mode || 'auto', logo: t?.logo === true };
-      if (next.color === site.color && next.mode === site.mode && next.logo === site.logo) return;
+      const next = { color: t?.color || 'maple', mode: t?.mode || 'auto', logo: t?.logo === true, glow: t?.glow !== false };
+      if (['color', 'mode', 'logo', 'glow'].every((k) => next[k] === site[k])) return;
       site = next;
       localStorage.setItem(SITE_KEY, JSON.stringify(site));
       apply();

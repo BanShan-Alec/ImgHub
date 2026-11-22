@@ -58,7 +58,7 @@ export async function handleApi(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return stats(env);
   if (path === '/api/settings' && method === 'GET') return json(settingsOut(env, await getSettings(env)));
   if (path === '/api/settings' && method === 'POST') {
-    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {urls?, login?, upload?, interval?}, links?: [{name, url}], theme?: {color?, mode?, logo?}}，至少给一项；bg、theme 为局部合并
+    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {urls?, login?, upload?, interval?}, links?: [{name, url}], theme?: {color?, mode?, logo?, glow?}}，至少给一项；bg、theme 为局部合并
     const body = await request.json().catch(() => null);
     const next = {};
     for (const f of ['hotlink', 'rss']) {
@@ -121,9 +121,10 @@ export async function handleApi(request, env, ctx, url) {
         if (!THEME_MODES.includes(th.mode)) return json({ error: 'bad_request' }, 400);
         themePatch.mode = th.mode;
       }
-      if ('logo' in th) {
-        if (typeof th.logo !== 'boolean') return json({ error: 'bad_request' }, 400);
-        themePatch.logo = th.logo;
+      for (const f of ['logo', 'glow']) {
+        if (!(f in th)) continue;
+        if (typeof th[f] !== 'boolean') return json({ error: 'bad_request' }, 400);
+        themePatch[f] = th[f];
       }
       if (!Object.keys(themePatch).length) return json({ error: 'bad_request' }, 400);
     }

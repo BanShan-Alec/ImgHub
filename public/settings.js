@@ -273,11 +273,14 @@ function renderTheme() {
       return b;
     }),
   );
-  setToggle($('#themeLogo .toggle'), cur.logo);
+  for (const row of document.querySelectorAll('[data-theme-flag]')) setToggle($('.toggle', row), cur[row.dataset.themeFlag]);
   $('#themeModeHint').textContent = t(THEME_MODES.find(([m]) => m === cur.mode)[2]);
 }
 
-$('#themeLogo').onclick = () => save({ theme: { logo: !settings.theme.logo } }, $('#themeLogo .toggle'));
+for (const row of document.querySelectorAll('[data-theme-flag]')) {
+  const f = row.dataset.themeFlag;
+  row.onclick = () => save({ theme: { [f]: !settings.theme[f] } }, $('.toggle', row));
+}
 
 // ---------- 存储：仅 R2 / R2 + Telegram 备份 / 仅 Telegram ----------
 const MODES = [
