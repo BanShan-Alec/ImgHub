@@ -1,6 +1,6 @@
 // GET/HEAD /file/<key>：Cache API → R2（占位对象则从 Telegram 取）→ Telegram 备份 → 回源旧图床（取回后写入 R2）
 // 原样返回字节，不做任何转换；no-transform 让 Polish 等功能不处理图片（HDR 增益图要靠这个保住）
-import { mimeFromName } from './mime.js';
+import { isPassive, mimeFromName } from './mime.js';
 import { configStore, storesFor, writeStore } from './stores.js';
 import { getSettings } from './settings.js';
 import { SIDECAR, isStub, realSize, tgReady, tgStream } from './telegram.js';
@@ -66,7 +66,7 @@ async function fromStore(env, bucket, key, request, bg) {
     const obj = await bucket.head(key);
     if (!obj) return null;
     const headers = objectHeaders(obj, key);
-    if (isStub(obj)) headers.set('Content-Length', String(realSize(obj)));
+    headers.set('Content-Length', String(realSize(obj)));
     return new Response(null, { status: 200, headers });
   }
 
@@ -212,9 +212,9 @@ function objectHeaders(obj, key) {
   h.set('Access-Control-Allow-Origin', '*');
   h.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, ETag');
   h.set('X-Content-Type-Options', 'nosniff');
-  // SVG 可以带脚本：禁止执行，防止被当成 XSS 跳板
-  if (/^image\/svg\+xml/i.test(h.get('Content-Type'))) {
-    h.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+  // SVG、HTML 等可以带脚本：禁止执行，防止被当成 XSS 跳板（同域的 /api 会带上管理员的 Cookie）
+  if (!isPassive(h.get('Content-Type'))) {
+    h.set('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
   }
   return h;
 }

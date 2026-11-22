@@ -675,7 +675,7 @@ export function topbarShadow() {
 
 export function snippet(kind, entry) {
   const url = linkOf(entry.url);
-  if (kind === 'md') return `![${entry.name}](${url})`;
-  if (kind === 'html') return `<img src="${url}" alt="${entry.name.replace(/"/g, '&quot;')}" loading="lazy">`;
+  if (kind === 'md') return `![${entry.name.replace(/[[\]\\]/g, '\\$&')}](${url})`;
+  if (kind === 'html') return `<img src="${url}" alt="${entry.name.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" loading="lazy">`;
   return url;
 }

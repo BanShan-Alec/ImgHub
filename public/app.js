@@ -162,6 +162,13 @@ async function keepReason(file) {
 }
 
 // ---------- 处理队列 ----------
+// 同时处理的文件数有上限：一次拖进几十张实况照片时，别把它们同时读进内存、同时上传
+const MAX_ACTIVE = 3;
+let active = 0;
+const pending = [];
+const acquire = () => (active < MAX_ACTIVE ? (active++, Promise.resolve()) : new Promise((r) => pending.push(r)));
+const release = () => (pending.length ? pending.shift()() : active--);
+
 let queued = 0;
 async function addFiles(list) {
   $('#queueSec').hidden = false;
@@ -169,9 +176,10 @@ async function addFiles(list) {
 }
 
 async function processFile(file) {
-  const ui = itemView({ name: file.name, thumb: URL.createObjectURL(file), type: file.type });
+  const ui = itemView({ name: file.name, thumb: !file.type || file.type.startsWith('image/') ? URL.createObjectURL(file) : null, type: file.type });
   $('#queue').prepend(ui.el);
   $('#queueCount').textContent = ++queued;
+  await acquire();
   try {
     let blob = file;
     let name = file.name;
@@ -221,6 +229,8 @@ async function processFile(file) {
     ui.done(entry, chips);
   } catch (err) {
     ui.fail(err.message);
+  } finally {
+    release();
   }
 }
 
@@ -298,7 +308,13 @@ function itemView({ name, thumb, type }) {
     img.loading = 'lazy';
     img.decoding = 'async';
     img.src = thumb;
-    img.onerror = () => img.replaceWith(icon('file'));
+    // 本机文件的预览用完就释放（已显示的画面不受影响）
+    const free = () => thumb.startsWith('blob:') && URL.revokeObjectURL(thumb);
+    img.onload = free;
+    img.onerror = () => {
+      free();
+      img.replaceWith(icon('file'));
+    };
     th.append(img);
   } else {
     th.append(icon(type?.startsWith('video/') ? 'movie' : 'file'));

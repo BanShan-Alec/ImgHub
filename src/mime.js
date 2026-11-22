@@ -15,10 +15,14 @@ export function mimeFromName(name) {
   return (ext && TYPES[ext]) || 'application/octet-stream';
 }
 
-// 上传时决定 Content-Type：扩展名优先（结果稳定），认不出再用客户端给的
+// 上传时决定 Content-Type：扩展名优先（结果稳定），认不出再用客户端给的——但只收图片 / 视频 / 音频，
+// 否则一律 octet-stream：text/html 等会在图床域名上执行脚本，借管理员的会话调用 /api
 export function pickContentType(name, clientType) {
   const byExt = mimeFromName(name);
   if (byExt !== 'application/octet-stream') return byExt;
-  if (clientType && !/^application\/octet-stream/i.test(clientType)) return clientType;
-  return byExt;
+  const t = (clientType || '').split(';')[0].trim().toLowerCase();
+  return /^(image|video|audio)\/[a-z0-9.+-]+$/.test(t) && !t.includes('svg') ? t : byExt;
 }
+
+// 浏览器会当作文档渲染、可能执行脚本的类型以外，都能放心 inline（图片 / 视频 / 音频 / PDF / 纯文本）
+export const isPassive = (type) => /^(image\/(?!svg)|video\/|audio\/|application\/pdf|text\/plain)/i.test(type || '');
