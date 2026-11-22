@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.svg" width="112" alt="CF-ImgHub">
+  <img src="banner.en.svg" width="100%" alt="CF ImgHub — The image host for personal blogs">
 </p>
 
 <h1 align="center">CF-ImgHub</h1>
@@ -88,7 +88,7 @@ You now have a working `https://cf-imghub.<your-subdomain>.workers.dev` address.
 
 ### Step 2: add your own domain (recommended)
 
-According to Cloudflare's documentation, `workers.dev` addresses cannot use the edge cache, so every request reads R2. For real use, adding your own domain is strongly recommended:
+`workers.dev` addresses cannot use the edge cache, so every request reads R2. For real use, adding your own domain is strongly recommended:
 
 1. In the [Cloudflare dashboard](https://dash.cloudflare.com/), open **Workers & Pages** → `cf-imghub`
 2. Go to **Settings** → **Domains & Routes** → **Add** → **Custom domain**
@@ -99,7 +99,7 @@ According to Cloudflare's documentation, `workers.dev` addresses cannot use the 
 1. Open `https://img.example.com/`, enter the upload password, upload an image and open the returned link in a new tab
 2. Open `https://img.example.com/admin` and sign in with the admin account; the image should be listed
 
-**Hotlink protection is off by default.** Before turning it on, replace the sample domains under "Allowed sites" on the settings page with your blog's domain (subdomains are included), or your blog's images will be blocked.
+Hotlink protection is off by default. Before turning it on, replace the sample domains under "Allowed sites" on the settings page with your blog's domain (subdomains are included), or your blog's images will be blocked.
 
 ### Step 4 (optional): add Telegram storage
 

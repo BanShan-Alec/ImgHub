@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.svg" width="112" alt="CF-ImgHub">
+  <img src="assets/banner.svg" width="100%" alt="CF ImgHub — 为个人博客打造的图床">
 </p>
 
 <h1 align="center">CF-ImgHub</h1>
