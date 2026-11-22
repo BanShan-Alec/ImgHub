@@ -7,6 +7,8 @@
 // storage：新上传存到哪里：r2（默认）/ r2+tg（R2 + Telegram 备份）/ tg（只存 Telegram）；没设 TG_BOT_TOKEN、TG_CHAT_ID 时一律按 r2。
 // bg：登录页 / 上传页背景，urls 是图片地址（https 完整地址或本站 /file/… 路径，最多 5 个，多于 1 个时轮播），interval 为轮播秒数。
 // 旧版存的是 keys（本图床的 key），读取时自动转成 /file/<key>。
+// theme：{color, mode}。color 是预设名（见 THEME_COLORS，配色在前端 theme.js 生成）或 #rrggbb 自定义种子色；
+// mode = auto（访客可自己切换深浅色，默认跟随系统）| light | dark（强制，所有访客生效，切换按钮隐藏）。登录前就要用，经 /api/site 公开。
 // links：页脚里额外的友情链接 [{name, url}]（秋风塬上、秋风广告规则两站是内建的，写死在前端 ui.js，不能移除）。bg 与 links 登录前就要用，经 GET /api/site 公开（见 siteInfo）。
 // 单张设置不写进对象的 customMetadata，因为图片回应会在 Cache API 里缓存一年，
 // 改了 metadata 也清不掉其他机房的缓存；放在设置里则所有机房 30 秒内生效。
@@ -24,7 +26,11 @@ const DEFAULTS = {
   bg: { urls: [], login: true, upload: true, interval: 10 },
   links: [],
   storage: 'r2',
+  theme: { color: 'maple', mode: 'auto' },
 };
+export const THEME_COLORS = ['maple', 'sakura', 'amber', 'bamboo', 'teal', 'ocean', 'violet', 'ink'];
+export const THEME_MODES = ['auto', 'light', 'dark'];
+export const normThemeColor = (c) => (THEME_COLORS.includes(c) ? c : typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c) ? c.toLowerCase() : null);
 export const STORAGE_MODES = ['r2', 'r2+tg', 'tg'];
 export const MAX_SITES = 200;
 export const MAX_DOMAINS = 20;
@@ -80,6 +86,10 @@ function normalize(d) {
     },
     links: Array.isArray(d?.links) ? d.links.map(normLink).filter(Boolean).slice(0, MAX_LINKS) : [],
     storage: STORAGE_MODES.includes(d?.storage) ? d.storage : DEFAULTS.storage,
+    theme: {
+      color: normThemeColor(d?.theme?.color) ?? DEFAULTS.theme.color,
+      mode: THEME_MODES.includes(d?.theme?.mode) ? d.theme.mode : DEFAULTS.theme.mode,
+    },
   };
 }
 
@@ -128,10 +138,10 @@ export function normSite(input) {
 }
 
 export function publicSettings(s) {
-  return { hotlink: s.hotlink, rss: s.rss, allow: s.allow, exempt: s.exempt, domains: s.domains, bg: s.bg, links: s.links, storage: s.storage };
+  return { hotlink: s.hotlink, rss: s.rss, allow: s.allow, exempt: s.exempt, domains: s.domains, bg: s.bg, links: s.links, storage: s.storage, theme: s.theme };
 }
 
-// 不登录也能读的部分（登录页背景、页脚）
+// 不登录也能读的部分（登录页背景、页脚、主题）
 export function siteInfo(s) {
-  return { bg: s.bg, links: s.links };
+  return { bg: s.bg, links: s.links, theme: s.theme };
 }

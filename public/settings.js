@@ -1,4 +1,4 @@
-// 设置页（管理员）：防盗链与 RSS 阅读器放行、放行网站、链接域名、存储（R2 / Telegram）、登录页/上传页背景、页脚友情链接。
+// 设置页（管理员）：防盗链与 RSS 阅读器放行、放行网站、链接域名、存储（R2 / Telegram）、主题与深浅色、登录页/上传页背景、页脚友情链接。
 // 每项改动立即保存（POST /api/settings），服务端负责规范化与校验
 import { t } from './i18n.js';
 import { $, api, errText, gate, icon, initLang, logout, setDomains, setShape, setSite, snack, topbarShadow } from './ui.js';
@@ -46,8 +46,9 @@ function apply(s) {
   renderBg();
   renderLinks();
   renderStorage();
+  renderTheme();
   setDomains(s.domains);
-  setSite({ bg: s.bg, links: s.links });
+  setSite({ bg: s.bg, links: s.links, theme: s.theme });
 }
 
 // ---------- 开关（整行可点；开关本身的点击会冒泡上来） ----------
@@ -209,6 +210,71 @@ $('#bgForm').onsubmit = async (e) => {
   if (next.length > MAX_BG) return snack(t('bgMax'), { error: true });
   if (await save({ bg: { urls: next } }, $('#bgForm button'))) input.value = '';
 };
+
+// ---------- 主题：预设色 + 自定义种子色；深浅色可强制 ----------
+const THEME = window.imghubTheme;
+const THEME_MODES = [
+  ['auto', 'themeModeAuto', 'hintModeAuto'],
+  ['light', 'themeModeLight', 'hintModeForced'],
+  ['dark', 'themeModeDark', 'hintModeForced'],
+];
+// 色块：主色 / 次色 / 第三色三分，都取深色方案里的色调 80，深浅背景上都清楚
+function paintSwatch(el, seed) {
+  const p = THEME.palette(seed, true);
+  el.style.setProperty('--c1', p.primary);
+  el.style.setProperty('--c2', p.secondary);
+  el.style.setProperty('--c3', p.tertiary);
+}
+function swatch(label, on, onPick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'swatch state';
+  b.setAttribute('role', 'radio');
+  b.setAttribute('aria-checked', String(on));
+  b.title = b.ariaLabel = label;
+  b.append(icon('check', 'sm'));
+  b.onclick = onPick;
+  return b;
+}
+function renderTheme() {
+  const cur = settings.theme;
+  const box = $('#swatches');
+  box.replaceChildren(
+    ...Object.entries(THEME.PRESETS).map(([name, seed]) => {
+      const b = swatch(t(`color_${name}`), cur.color === name, () => cur.color !== name && save({ theme: { color: name } }, box));
+      paintSwatch(b, seed);
+      return b;
+    }),
+  );
+  // 自定义：色块里叠一个透明的取色器，选完（change）才保存
+  const custom = cur.color.startsWith('#');
+  const c = swatch(t('colorCustom'), custom, null);
+  c.classList.add('custom');
+  if (custom) paintSwatch(c, cur.color);
+  else c.append(icon('palette', 'sm'));
+  const pick = document.createElement('input');
+  pick.type = 'color';
+  pick.value = custom ? cur.color : THEME.PRESETS.maple;
+  pick.tabIndex = -1;
+  pick.onchange = () => save({ theme: { color: pick.value } }, box);
+  pick.onclick = (e) => e.stopPropagation(); // 别冒泡回色块的 onclick 再触发一次
+  c.onclick = () => pick.click();
+  c.append(pick);
+  box.append(c);
+
+  const group = $('#themeMode');
+  group.replaceChildren(
+    ...THEME_MODES.map(([m, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t(label);
+      b.classList.toggle('on', m === cur.mode);
+      b.onclick = () => m !== cur.mode && save({ theme: { mode: m } }, group);
+      return b;
+    }),
+  );
+  $('#themeModeHint').textContent = t(THEME_MODES.find(([m]) => m === cur.mode)[2]);
+}
 
 // ---------- 存储：仅 R2 / R2 + Telegram 备份 / 仅 Telegram ----------
 const MODES = [

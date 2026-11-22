@@ -39,6 +39,10 @@ const ICONS = {
   rss: 'M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20 5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z',
   left: 'M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z',
   right: 'M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
+  brightnessAuto: 'M10.85 12.65h2.3L12 9l-1.15 3.65zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM14.3 16l-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9h-1.9z',
+  lightMode: 'M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z',
+  darkMode: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z',
+  palette: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
   error: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
 };
 
@@ -177,11 +181,12 @@ export function initLang() {
   setLang(detectLang());
   hydrateIcons();
   for (const b of document.querySelectorAll('[data-lang-menu]')) langMenu(b);
+  for (const b of document.querySelectorAll('[data-mode-menu]')) modeMenu(b);
   moreMenu();
 }
 
 let menuSeq = 0;
-// 弹出菜单：items() 每次打开时取 [[值, 文字]]，current() 取当前值
+// 弹出菜单：items() 每次打开时取 [[值, 文字, 图标?]]，current() 取当前值
 function popMenu(button, items, current, pick) {
   const menu = document.createElement('div');
   menu.className = 'menu';
@@ -190,11 +195,12 @@ function popMenu(button, items, current, pick) {
   document.body.append(menu);
   button.addEventListener('click', () => {
     menu.replaceChildren();
-    for (const [v, label] of items()) {
+    for (const [v, label, ic] of items()) {
       const b = document.createElement('button');
       b.className = 'state';
       b.classList.toggle('on', v === current());
-      b.textContent = label;
+      if (ic) b.append(icon(ic));
+      b.append(label);
       b.onclick = () => {
         pick(v);
         menu.hidePopover();
@@ -242,6 +248,25 @@ function moreMenu() {
 }
 function langMenu(button) {
   popMenu(button, () => Object.entries(LANGS), getLang, setLang);
+}
+
+// ---------- 深浅色 ----------
+// 访客自选（记在本机）；管理员在设置页强制浅色/深色时按钮隐藏。配色与套用在 theme.js
+const theme = window.imghubTheme;
+const MODES = [
+  ['auto', 'modeAuto', 'brightnessAuto'],
+  ['light', 'modeLight', 'lightMode'],
+  ['dark', 'modeDark', 'darkMode'],
+];
+function modeMenu(button) {
+  if (!theme) return;
+  const sync = () => {
+    button.hidden = Boolean(theme.forced());
+    button.replaceChildren(icon(MODES.find(([m]) => m === theme.userMode())[2]));
+  };
+  sync();
+  document.addEventListener('themechange', sync);
+  popMenu(button, () => MODES.map(([m, k, ic]) => [m, t(k), ic]), theme.userMode, theme.setMode);
 }
 
 // ---------- 链接域名 ----------
@@ -393,6 +418,7 @@ function showLogin(need) {
     wrap.innerHTML = `
       <div class="corner">
         <a class="btn icon state" href="${GITHUB}" target="_blank" rel="noopener" data-i18n-tip="github"><i data-icon="github"></i></a>
+        <button class="btn icon state" data-mode-menu data-i18n-tip="colorMode"><i data-icon="brightnessAuto"></i></button>
         <button class="btn icon state" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
       </div>
       <div class="gate-card">
@@ -411,6 +437,7 @@ function showLogin(need) {
     document.body.prepend(wrap);
     hydrateIcons(wrap);
     langMenu($('[data-lang-menu]', wrap));
+    modeMenu($('[data-mode-menu]', wrap));
 
     const card = $('.gate-card', wrap);
     const emblem = $('.emblem', wrap);
@@ -498,10 +525,16 @@ export const BUILTIN_LINKS = [
   { i18n: 'siteAwavenue', url: 'https://awavenue.top/' },
 ];
 let siteReq;
-// 公开设置（背景、页脚链接）：每页只取一次；设置页保存后用 setSite() 更新
-export const site = () => (siteReq ??= api('/api/site').then((r) => (r.ok ? r.body : { bg: { urls: [] }, links: [] })));
+// 公开设置（背景、页脚链接、主题）：每页只取一次；设置页保存后用 setSite() 更新
+export const site = () =>
+  (siteReq ??= api('/api/site').then((r) => {
+    if (!r.ok) return { bg: { urls: [] }, links: [] };
+    theme?.setSite(r.body.theme);
+    return r.body;
+  }));
 export function setSite(info) {
   siteReq = Promise.resolve(info);
+  theme?.setSite(info.theme);
   footer();
 }
 const BG_FADE = 1200; // 与 CSS 里 .backdrop img 的淡入时长一致

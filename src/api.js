@@ -2,7 +2,7 @@
 // 错误只返回代码（error 字段），由前端按语言翻译
 import { pickContentType } from './mime.js';
 import { allStores, BRAND, configStore, keyTime, storesFor, writeStore } from './stores.js';
-import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, STORAGE_MODES, getSettings, normBgUrl, normLink, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
+import { BG_INTERVALS, MAX_BG, MAX_DOMAINS, MAX_LINKS, MAX_SITES, STORAGE_MODES, THEME_MODES, getSettings, normThemeColor, normBgUrl, normLink, normSite, publicSettings, saveSettings, siteInfo } from './settings.js';
 import { RSS_READERS } from './serve.js';
 import { hasRole, identify, login, logoutCookie, sameOrigin } from './auth.js';
 import { SIDECAR, TgError, isStub, realSize, tgDelete, tgPut, tgReady } from './telegram.js';
@@ -58,7 +58,7 @@ export async function handleApi(request, env, ctx, url) {
   if (path === '/api/stats' && method === 'GET') return stats(env);
   if (path === '/api/settings' && method === 'GET') return json(settingsOut(env, await getSettings(env)));
   if (path === '/api/settings' && method === 'POST') {
-    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {urls?, login?, upload?, interval?}, links?: [{name, url}]}，至少给一项
+    // {hotlink?, rss?: boolean, allow?, domains?: string[], bg?: {urls?, login?, upload?, interval?}, links?: [{name, url}], theme?: {color?, mode?}}，至少给一项；bg、theme 为局部合并
     const body = await request.json().catch(() => null);
     const next = {};
     for (const f of ['hotlink', 'rss']) {
@@ -108,9 +108,25 @@ export async function handleApi(request, env, ctx, url) {
       if ('interval' in b && !BG_INTERVALS.includes(b.interval)) return json({ error: 'bad_request' }, 400);
       bgPatch = b;
     }
-    if (!Object.keys(next).length && !bgPatch) return json({ error: 'bad_request' }, 400);
+    let themePatch;
+    if ('theme' in (body ?? {})) {
+      const th = body.theme;
+      if (!th || typeof th !== 'object') return json({ error: 'bad_request' }, 400);
+      themePatch = {};
+      if ('color' in th) {
+        if (!normThemeColor(th.color)) return json({ error: 'bad_request' }, 400);
+        themePatch.color = normThemeColor(th.color);
+      }
+      if ('mode' in th) {
+        if (!THEME_MODES.includes(th.mode)) return json({ error: 'bad_request' }, 400);
+        themePatch.mode = th.mode;
+      }
+      if (!Object.keys(themePatch).length) return json({ error: 'bad_request' }, 400);
+    }
+    if (!Object.keys(next).length && !bgPatch && !themePatch) return json({ error: 'bad_request' }, 400);
     const cur = await getSettings(env, { fresh: true });
     if (bgPatch) next.bg = { ...cur.bg, ...bgPatch };
+    if (themePatch) next.theme = { ...cur.theme, ...themePatch };
     return json(settingsOut(env, await saveSettings(env, { ...cur, ...next })));
   }
   // POST /api/exempt {keys, on}：单张防盗链开关。on=true 表示这几张允许外链

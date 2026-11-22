@@ -9,11 +9,13 @@
 <title>CF ImgHub</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css">
+<script src="/theme.js"></script>
 <script type="module" src="/settings.js"></script>
 </head>
 <body class="locked" data-title="settingsTitle">
 <header class="topbar">
   <a class="brand" href="/settings"><i data-icon="logo" class="mark"></i><span class="name">CF ImgHub</span><span class="tag" data-i18n="tagSettings"></span></a>
+  <button class="btn icon state ovf" data-mode-menu data-i18n-tip="colorMode" hidden><i data-icon="brightnessAuto"></i></button>
   <button class="btn icon state ovf" data-lang-menu data-i18n-tip="language"><i data-icon="translate"></i></button>
   <a class="btn icon state ovf gh-top" href="https://github.com/TG-Twilight/CF-ImgHub" target="_blank" rel="noopener" data-i18n-tip="github"><i data-icon="github"></i></a>
   <a class="btn icon state" href="/admin" data-i18n-tip="toAdmin"><i data-icon="dashboard"></i></a>
@@ -69,6 +71,19 @@
     <div class="setting" id="tgBackup" hidden>
       <span><b data-i18n="tgBackupTitle"></b><small id="tgBackupNote"></small></span>
       <button class="btn tonal sm state" type="button" id="tgBackupBtn"><i data-icon="history" class="sm"></i><span class="lbl" data-i18n="tgBackupRun"></span></button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="morph ph-icon t2" data-shape="cookie7"><i data-icon="palette"></i></span>
+      <span><h2 class="title-l" data-i18n="themeTitle"></h2><small data-i18n="themeNote"></small></span>
+    </div>
+    <div class="swatches" id="swatches" role="radiogroup" data-i18n-tip="themeColor"></div>
+    <div class="opt">
+      <span class="label" data-i18n="themeMode"></span>
+      <div class="group" id="themeMode"></div>
+      <span class="hint-s" id="themeModeHint"></span>
     </div>
   </section>
 

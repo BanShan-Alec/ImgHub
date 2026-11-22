@@ -46,7 +46,7 @@ The server never modifies file bytes.
 - **Two roles**: uploaders need only a password and can undo uploads from the last 24 hours; admins can browse, search, bulk-delete and change settings
 - **Hotlink protection**: custom allowed sites and per-image exceptions; direct visits and RSS readers are unaffected
 - **Readable names**: `ImgHub-20261121-153045-k7q2.avif` by default, or keep the original name
-- **Multiple domains, backgrounds, quick links**: all on the settings page
+- **Theme colors, light / dark, multiple domains, backgrounds, quick links**: all on the settings page; light or dark can be forced for everyone
 - **Telegram storage (optional)**: as a backup for R2, or Telegram only
 - **Script uploads**: call `/api/upload` with a Bearer token
 - Material 3 Expressive UI, light / dark, 简体中文 / 繁體中文 / English
