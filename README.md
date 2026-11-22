@@ -29,7 +29,7 @@
 
 ### 实况照片与 HDR
 
-上传时按文件内容识别实况照片（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信转存）和 HDR 照片（Ultra HDR / ISO 21496-1 增益图）。HDR 照片、动图、SVG、ICO、视频原样上传（也支持压缩）；实况照片拆开压缩后按原结构装回，相册照样识别：
+上传时按文件内容识别实况照片（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信转存）和 HDR 照片（Ultra HDR / ISO 21496-1 增益图）。HDR 照片、动图、SVG、ICO、视频原样上传；实况照片拆开压缩后按原结构装回，相册照样识别：
 
 | 档位 | 做法 |
 |------|------|
@@ -62,7 +62,7 @@
 ### 第 1 步：一键部署
 
 1. 点上方 **Deploy to Cloudflare** 按钮，登录 Cloudflare
-2. 按提示连接 GitHub 并授权。Cloudflare 会把本仓库 Fork 到你的 GitHub 账户。
+2. 按提示连接 GitHub 并授权。Cloudflare 会把本仓库复制一份到你的 GitHub 账户。
 3. 项目名称保持 `cf-imghub` 或自己改
 4. R2 桶保持新建，名称可以改
 5. 依次填写下面 5 个密钥：
@@ -103,7 +103,7 @@
 |------|------|
 | 仅 R2（默认） | 最快 |
 | R2 + Telegram | 照常从 R2 读取，另存一份到 Telegram（容灾）；R2 里找不到时自动改从 Telegram 读 |
-| 仅 Telegram | 不占 R2 空间（R2 只留很小的索引）；没被缓存的图片首次时打开慢 0.5–3 秒；单个文件最大 100MB |
+| 仅 Telegram | 不占 R2 空间（R2 只留很小的索引）；没被缓存的图片首次打开慢 0.5–3 秒；单个文件最大 100MB |
 
 1. **建 bot**：在 Telegram 打开 [@BotFather](https://t.me/BotFather)，发送 `/newbot`，按提示起名，最后会收到形如 `123456789:AA…` 的 token。token 相当于 bot 的密码，不要公开
 2. **建频道**：新建一个频道，设为私有即可

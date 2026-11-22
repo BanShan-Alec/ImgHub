@@ -6,7 +6,7 @@
 
 <p align="center">
   An image host for personal blogs, running on Cloudflare Workers + R2.<br>
-  Fast, compresses in your browser, and never loses Motion Photos or HDR.
+  Fast, compresses locally in your browser, and supports Motion Photos and HDR.
 </p>
 
 <p align="center">
@@ -23,11 +23,11 @@
 
 Images are served straight from Cloudflare's edge: cache first, then R2 on a miss. No database and no third-party storage on the read path.
 
-### Compression in the browser
+### Automatic compression
 
-Images are transcoded in your browser before upload; the server only stores the result. **AVIF** by default, or WebP / JPEG / PNG, or no compression; three quality levels and an optional longest-edge limit. If the result is larger, the original is kept.
+Images are compressed once before upload by default (locally, in your browser): **AVIF** by default, or WebP / JPEG / PNG, or no compression; several quality levels and an optional longest-edge limit. And of course, **if the result is larger, the original is kept**.
 
-### Motion Photos and HDR, never lost
+### Motion Photos and HDR
 
 Uploads are inspected by content to detect Motion Photos (Google Motion Photo, OPPO / OnePlus / realme O Live, including WeChat re-saves) and HDR photos (Ultra HDR / ISO 21496-1 gain maps). HDR photos, animations, SVG, ICO and videos are uploaded as-is; Motion Photos are split, compressed and reassembled in their original structure, so galleries still recognize them:
 
@@ -47,22 +47,22 @@ The server never modifies file bytes.
 - **Hotlink protection**: custom allowed sites and per-image exceptions; direct visits and RSS readers are unaffected
 - **Readable names**: `ImgHub-20261121-153045-k7q2.avif` by default, or keep the original name
 - **Theme colors, light / dark, multiple domains, backgrounds, quick links**: all on the settings page; light or dark can be forced for everyone
-- **Telegram storage (optional)**: as a backup for R2, or Telegram only
+- **Telegram storage (optional)**: as a backup for R2, or Telegram only for nearly unlimited storage
 - **Location removal**: GPS is stripped from photos and videos before upload, leaving quality, Live Photos and HDR intact (on by default)
 - **Script uploads**: call `/api/upload` with a Bearer token
-- Material 3 Expressive UI, light / dark, 简体中文 / 繁體中文 / English
+- Material 3 Expressive UI, light / dark, custom color schemes, 简体中文 / 繁體中文 / English
 
 ## Deploy
 
 <details>
 <summary>Show deployment steps</summary>
 
-You need a Cloudflare account (the free plan is fine) and a GitHub account. To use your own domain, it must already be on Cloudflare.
+You need a Cloudflare account (the free plan is fine) and a GitHub account. To use your own domain, it must be hosted on Cloudflare.
 
 ### Step 1: one-click deploy
 
 1. Click the **Deploy to Cloudflare** button above and sign in to Cloudflare
-2. Connect GitHub when asked. Cloudflare copies this repository into your GitHub account; pushing changes there redeploys automatically
+2. Connect GitHub when asked. Cloudflare copies this repository into your GitHub account.
 3. Keep the project name `cf-imghub` or pick your own
 4. Keep the new R2 bucket (you may rename it)
 5. Fill in the five secrets:
@@ -82,7 +82,7 @@ You now have a working `https://cf-imghub.<your-subdomain>.workers.dev` address.
 
 ### Step 2: add your own domain (recommended)
 
-Cloudflare's edge cache does not work on `workers.dev`, so every request reads R2. For real use, add a domain:
+According to Cloudflare's documentation, `workers.dev` addresses cannot use the edge cache, so every request reads R2. For real use, adding your own domain is strongly recommended:
 
 1. In the [Cloudflare dashboard](https://dash.cloudflare.com/), open **Workers & Pages** → `cf-imghub`
 2. Go to **Settings** → **Domains & Routes** → **Add** → **Custom domain**
@@ -102,7 +102,7 @@ Skip this if you don't need it; R2 alone works fine. Three modes:
 | Mode | What it does |
 |------|------|
 | R2 only (default) | Fastest |
-| R2 + Telegram backup | Served from R2 with a copy in Telegram; falls back to Telegram if a file is missing from R2 |
+| R2 + Telegram | Served from R2 with a copy in Telegram (for disaster recovery); falls back to Telegram if a file is missing from R2 |
 | Telegram only | Uses no R2 space (R2 keeps a tiny index); uncached images take 0.5–3 s to open; up to 100 MB per file |
 
 1. **Create a bot**: open [@BotFather](https://t.me/BotFather) in Telegram, send `/newbot` and follow the prompts. You get a token like `123456789:AA…`. It is the bot's password; keep it private

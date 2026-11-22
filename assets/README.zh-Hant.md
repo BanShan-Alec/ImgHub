@@ -6,7 +6,7 @@
 
 <p align="center">
   為個人部落格打造的圖床，跑在 Cloudflare Workers + R2 上。<br>
-  快、在瀏覽器裡壓縮，不丟實況照片與 HDR。
+  快，瀏覽器本機壓縮，且支援實況照片與 HDR。
 </p>
 
 <p align="center">
@@ -23,13 +23,13 @@
 
 圖片直接從 Cloudflare 邊緣回傳：先查快取，未命中再讀 R2，中間沒有資料庫，也不繞道第三方儲存。
 
-### 在瀏覽器裡壓縮
+### 自動壓縮
 
-轉檔在上傳前由瀏覽器完成，伺服器只存結果。預設轉 **AVIF**，也可選 WebP / JPEG / PNG 或不壓縮；品質分三檔，可限制最長邊。壓完變大時自動用原圖。
+圖片在上傳前預設會經過一次壓縮（瀏覽器本機完成），預設轉 **AVIF**，也可選 WebP / JPEG / PNG 或不壓縮；提供檔位選擇，可限制最長邊，當然，**壓完變大時自動用原圖**。
 
-### 實況照片與 HDR 不遺失
+### 實況照片與 HDR
 
-上傳時依檔案內容辨識實況照片（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信轉存的）和 HDR 照片（Ultra HDR / ISO 21496-1 增益圖）。HDR 照片、動圖、SVG、ICO、影片原樣上傳；實況照片拆開壓縮後按原結構裝回，相簿照樣辨識：
+上傳時依檔案內容辨識實況照片（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信轉存）和 HDR 照片（Ultra HDR / ISO 21496-1 增益圖）。HDR 照片、動圖、SVG、ICO、影片原樣上傳；實況照片拆開壓縮後按原結構裝回，相簿照樣辨識：
 
 | 檔位 | 做法 |
 |------|------|
@@ -47,22 +47,22 @@
 - **防盜連**：可自訂放行網站，單張圖片可單獨放行；直接開啟和 RSS 閱讀器不受影響
 - **易讀的檔名**：預設 `ImgHub-20261121-153045-k7q2.avif`，也可保持原名
 - **主題色、深淺色、多網域、背景圖、快捷連結**：都在設定頁調整；深淺色可強制統一
-- **Telegram 儲存（選用）**：作為 R2 的備份，或只存 Telegram
+- **Telegram 儲存（選用）**：作為 R2 的備份，或只存 Telegram 以實現近乎無上限的儲存
 - **去除定位**：上傳前清除照片與影片裡的 GPS，不動畫質、實況與 HDR（預設開啟，可關）
 - **腳本上傳**：用 Bearer Token 呼叫 `/api/upload`
-- Material 3 Expressive 介面，亮 / 暗色，简体中文 / 繁體中文 / English
+- Material 3 Expressive 介面，亮 / 暗色，自訂色彩搭配，简体中文 / 繁體中文 / English
 
 ## 部署
 
 <details>
 <summary>展開部署步驟</summary>
 
-準備：一個 Cloudflare 帳戶（免費版即可）和一個 GitHub 帳戶。想用自己的網域，網域需要已經託管在 Cloudflare。
+準備：一個 Cloudflare 帳戶（免費版即可）和一個 GitHub 帳戶，想用自己的網域需要將其託管在 Cloudflare。
 
 ### 第 1 步：一鍵部署
 
 1. 點上方 **Deploy to Cloudflare** 按鈕，登入 Cloudflare
-2. 依提示連接 GitHub 並授權。Cloudflare 會把本倉庫複製一份到你的 GitHub 帳戶，以後在那裡改程式碼會自動重新部署
+2. 依提示連接 GitHub 並授權。Cloudflare 會把本倉庫複製一份到你的 GitHub 帳戶。
 3. 專案名稱保持 `cf-imghub` 或自己改
 4. R2 儲存桶保持新建，名稱可以改
 5. 依序填寫下面 5 個密鑰：
@@ -82,7 +82,7 @@
 
 ### 第 2 步：綁定自己的網域（建議）
 
-`workers.dev` 網址用不上 Cloudflare 的邊緣快取，每次都要讀 R2，正式使用請綁定網域：
+根據官方說明，`workers.dev` 網址無法讀取 Cloudflare 的邊緣快取，每次都要讀 R2，因此正式使用強烈建議綁定網域：
 
 1. 打開 [Cloudflare 主控台](https://dash.cloudflare.com/)，左側選「Workers 和 Pages」，點進 `cf-imghub`
 2. 進入「設定」→「網域和路由」→「新增」→「自訂網域」
@@ -102,7 +102,7 @@
 | 模式 | 說明 |
 |------|------|
 | 僅 R2（預設） | 最快 |
-| R2 + Telegram 備份 | 照常從 R2 讀取，另存一份到 Telegram；R2 裡找不到時自動改從 Telegram 讀 |
+| R2 + Telegram | 照常從 R2 讀取，另存一份到 Telegram（容災）；R2 裡找不到時自動改從 Telegram 讀 |
 | 僅 Telegram | 不佔 R2 空間（R2 只留很小的索引）；沒被快取的圖片首次開啟慢 0.5–3 秒；單個檔案最大 100MB |
 
 1. **建立 bot**：在 Telegram 開啟 [@BotFather](https://t.me/BotFather)，傳送 `/newbot`，依提示命名，最後會收到形如 `123456789:AA…` 的 token。token 相當於 bot 的密碼，不要公開
