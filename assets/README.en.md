@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/TG-Twilight/CF-ImgHub"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"></a>
+  <a href="https://github.com/TG-Twilight/CF-ImgHub/fork"><img src="https://img.shields.io/github/forks/TG-Twilight/CF-ImgHub?style=social&label=Fork" alt="Fork"></a>
 </p>
 
 <p align="center">
@@ -59,26 +59,32 @@ The server never modifies file bytes.
 
 You need a Cloudflare account (the free plan is fine) and a GitHub account. To use your own domain, it must be hosted on Cloudflare.
 
-### Step 1: one-click deploy
+### Step 1: fork and deploy
 
-1. Click the **Deploy to Cloudflare** button above and sign in to Cloudflare
-2. Connect GitHub when asked. Cloudflare copies this repository into your GitHub account.
-3. Keep the project name `cf-imghub` or pick your own
-4. Keep the new R2 bucket (you may rename it)
-5. Fill in the five secrets:
+You will need these five secrets:
 
-   | Name | Value |
-   |------|------|
-   | `SESSION_SECRET` | A long random string used to sign sessions |
-   | `UPLOAD_PASSWORD` | Password for the upload page |
-   | `ADMIN_USER` | Admin username |
-   | `ADMIN_PASSWORD` | Admin password |
-   | `UPLOAD_TOKEN` | Token for script uploads; fill a random string even if unused |
+| Name | Value |
+|------|------|
+| `SESSION_SECRET` | A long random string used to sign sessions |
+| `UPLOAD_PASSWORD` | Password for the upload page |
+| `ADMIN_USER` | Admin username |
+| `ADMIN_PASSWORD` | Admin password |
+| `UPLOAD_TOKEN` | Token for script uploads; fill a random string even if unused |
 
-   Generate random strings with a password manager or `openssl rand -hex 32`. Names are case-sensitive; no spaces around values
-6. Click the deploy button at the bottom and wait for the build (1–2 minutes)
+Generate random strings with a password manager or `openssl rand -hex 32`. Names are case-sensitive; no spaces around values.
+
+1. [Fork this repository](https://github.com/TG-Twilight/CF-ImgHub/fork) to your GitHub account
+2. In the [Cloudflare dashboard](https://dash.cloudflare.com/), open **R2 Object Storage** → **Create bucket** and name it `cf-imghub`
+3. Open **Workers & Pages** → **Create** → **Import a repository**
+4. The first time, connect GitHub: click **Connect GitHub**, pick your account on the GitHub page that opens, then install and authorize the **Cloudflare Workers and Pages** app. Grant **All repositories**, or **Only select repositories** and tick your fork
+5. Back in Cloudflare, select your GitHub account and your fork, then click **Next**
+6. Set the project name to `cf-imghub` (it must match `name` in the repo's `wrangler.jsonc`), the build command to `npm run build`, and keep the deploy command `npx wrangler deploy`
+7. Click **Deploy** and wait for the build (about 1–2 minutes)
+8. Open `cf-imghub` → **Settings** → **Variables and Secrets**, **Add** each secret from the table as type **Secret**, then click **Deploy**
 
 You now have a working `https://cf-imghub.<your-subdomain>.workers.dev` address.
+
+**Updating later**: on your fork's GitHub page, click **Sync fork** → **Update branch**; Cloudflare redeploys automatically.
 
 ### Step 2: add your own domain (recommended)
 
@@ -130,6 +136,7 @@ Several domains: add more custom domains under the Worker's **Settings → Domai
 
 | Symptom | Cause and fix |
 |------|------|
+| Your fork doesn't show up when importing | The Cloudflare GitHub app can't access it. On GitHub, go to **Settings** → **Applications** → Cloudflare Workers and Pages → **Configure** and add the repository |
 | Sign-in says "This sign-in method is not configured on the server" | `SESSION_SECRET` is missing, or this page's password is (`UPLOAD_PASSWORD` for uploads; `ADMIN_USER` and `ADMIN_PASSWORD` for admin). Check the spelling under Variables and Secrets |
 | "Incorrect password" although it is right | Look for stray spaces or line breaks around the value |
 | Script upload returns 401 | `UPLOAD_TOKEN` is missing or differs from the one in your script |

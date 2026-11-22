@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/TG-Twilight/CF-ImgHub"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"></a>
+  <a href="https://github.com/TG-Twilight/CF-ImgHub/fork"><img src="https://img.shields.io/github/forks/TG-Twilight/CF-ImgHub?style=social&label=Fork" alt="Fork"></a>
 </p>
 
 <p align="center">
@@ -59,26 +59,32 @@
 
 准备：一个 Cloudflare 账户（免费版即可）和一个 GitHub 账户，想用自己的域名需要将其托管在 Cloudflare。
 
-### 第 1 步：一键部署
+### 第 1 步：Fork 并部署
 
-1. 点上方 **Deploy to Cloudflare** 按钮，登录 Cloudflare
-2. 按提示连接 GitHub 并授权。Cloudflare 会把本仓库复制一份到你的 GitHub 账户。
-3. 项目名称保持 `cf-imghub` 或自己改
-4. R2 桶保持新建，名称可以改
-5. 依次填写下面 5 个密钥：
+部署时要用到下面 5 个密钥：
 
-   | 名称 | 填什么 |
-   |------|------|
-   | `SESSION_SECRET` | 一串随机长字符串，用来签名登录会话 |
-   | `UPLOAD_PASSWORD` | 上传页的密码 |
-   | `ADMIN_USER` | 管理页的账号 |
-   | `ADMIN_PASSWORD` | 管理页的密码 |
-   | `UPLOAD_TOKEN` | 脚本上传用的 Token；不用脚本也请填一串随机字符 |
+| 名称 | 填什么 |
+|------|------|
+| `SESSION_SECRET` | 一串随机长字符串，用来签名登录会话 |
+| `UPLOAD_PASSWORD` | 上传页的密码 |
+| `ADMIN_USER` | 管理页的账号 |
+| `ADMIN_PASSWORD` | 管理页的密码 |
+| `UPLOAD_TOKEN` | 脚本上传用的 Token；不用脚本也请填一串随机字符 |
 
-   随机字符串可以用密码管理器生成，或在终端运行 `openssl rand -hex 32`。名称区分大小写，值的前后不要带空格
-6. 点页面底部的部署按钮，等待构建完成（约 1–2 分钟）
+随机字符串可以用密码管理器生成，或在终端运行 `openssl rand -hex 32`。名称区分大小写，值的前后不要带空格。
+
+1. [Fork 本仓库](https://github.com/TG-Twilight/CF-ImgHub/fork) 到你的 GitHub 账户
+2. 打开 [Cloudflare 控制台](https://dash.cloudflare.com/)，左侧选「R2 对象存储」→「创建存储桶」，名称填 `cf-imghub`
+3. 左侧选「Workers 和 Pages」→「创建」→「导入存储库」
+4. 第一次使用要先连接 GitHub：点「连接 GitHub」，在跳出的 GitHub 页面选择你的账户，安装并授权 **Cloudflare Workers and Pages** 应用。仓库权限选「All repositories」，或选「Only select repositories」并勾选刚 Fork 的仓库
+5. 回到 Cloudflare，选择你的 GitHub 账户和刚 Fork 的仓库，点「下一步」
+6. 项目名称填 `cf-imghub`（必须与仓库里 `wrangler.jsonc` 的 `name` 一致），构建命令填 `npm run build`，部署命令保持 `npx wrangler deploy`
+7. 点「部署」，等待构建完成（约 1–2 分钟）
+8. 进入 `cf-imghub` →「设置」→「变量和机密」，按上表逐个「添加」，类型选「密钥」，最后点「部署」
 
 完成后会得到一个 `https://cf-imghub.<你的子域>.workers.dev` 地址，已经可以打开使用。
+
+**以后更新**：在你 Fork 的仓库页面点 **Sync fork** →「Update branch」，Cloudflare 会自动重新部署。
 
 ### 第 2 步：绑定自己的域名（推荐）
 
@@ -130,6 +136,7 @@
 
 | 现象 | 原因与处理 |
 |------|------|
+| 导入存储库时找不到 Fork 的仓库 | Cloudflare 的 GitHub 应用没有这个仓库的权限。到 GitHub「Settings」→「Applications」→ Cloudflare Workers and Pages →「Configure」，把仓库加进去 |
 | 登录时提示「服务器尚未设置这种登录方式」 | 缺少 `SESSION_SECRET`，或缺少这个页面的密码（上传页要 `UPLOAD_PASSWORD`，管理页要 `ADMIN_USER` 和 `ADMIN_PASSWORD`）。到「变量和机密」核对名称拼写 |
 | 提示「密码不正确」，但确定没输错 | 检查「值」的前后是否多了空格或换行 |
 | 脚本上传返回 401 | `UPLOAD_TOKEN` 没设置，或与脚本里用的不一致 |
