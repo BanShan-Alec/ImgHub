@@ -6,7 +6,7 @@
 
 <p align="center">
   为个人博客打造的图床，跑在 Cloudflare Workers + R2 上。<br>
-  快，在浏览器里压缩，不丢实况照片与 HDR。
+  快，浏览器本地压缩，且支持实况照片与 HDR。
 </p>
 
 <p align="center">
@@ -23,13 +23,13 @@
 
 图片直接从 Cloudflare 边缘返回：先查缓存，未命中再读 R2，中间没有数据库，也不绕道第三方存储。
 
-### 在浏览器里压缩
+### 自动压缩
 
-转码在上传前由浏览器完成，服务器只存结果。默认转 **AVIF**，也可选 WebP / JPEG / PNG 或不压缩；质量分三档，可限制最长边。压完变大时自动用原图。
+图片在上传前默认会经过一次压缩（浏览器本地完成），默认转 **AVIF**，也可选 WebP / JPEG / PNG 或不压缩；提供挡位选择，可限制最长边，当然，**压完变大时自动用原图**。
 
-### 实况照片与 HDR 不丢失
+### 实况照片与 HDR
 
-上传时按文件内容识别实况照片（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信转存的）和 HDR 照片（Ultra HDR / ISO 21496-1 增益图）。HDR 照片、动图、SVG、ICO、视频原样上传；实况照片拆开压缩后按原结构装回，相册照样识别：
+上传时按文件内容识别实况照片（Google Motion Photo、OPPO / 一加 / realme 的 O Live，含微信转存）和 HDR 照片（Ultra HDR / ISO 21496-1 增益图）。HDR 照片、动图、SVG、ICO、视频原样上传（也支持压缩）；实况照片拆开压缩后按原结构装回，相册照样识别：
 
 | 档位 | 做法 |
 |------|------|
@@ -47,22 +47,22 @@
 - **防盗链**：可自定放行网站，单张图片可单独放行；直接打开和 RSS 阅读器不受影响
 - **易读的文件名**：默认 `ImgHub-20261121-153045-k7q2.avif`，也可保持原名
 - **主题色、深浅色、多域名、背景图、快捷链接**：都在设置页调整；深浅色可强制统一
-- **Telegram 存储（可选）**：作为 R2 的备份，或只存 Telegram
+- **Telegram 存储（可选）**：作为 R2 的备份，或只存 Telegram 以实现近乎无上限的存储
 - **去除定位**：上传前清除照片与视频里的 GPS，不动画质、实况与 HDR（默认开启，可关）
 - **脚本上传**：用 Bearer Token 调用 `/api/upload`
-- Material 3 Expressive 界面，亮 / 暗色，简体中文 / 繁體中文 / English
+- Material 3 Expressive 界面，亮 / 暗色，自定义色彩搭配，简体中文 / 繁體中文 / English
 
 ## 部署
 
 <details>
 <summary>展开部署步骤</summary>
 
-准备：一个 Cloudflare 账户（免费版即可）和一个 GitHub 账户。想用自己的域名，域名需要已经托管在 Cloudflare。
+准备：一个 Cloudflare 账户（免费版即可）和一个 GitHub 账户，想用自己的域名需要将其托管在 Cloudflare。
 
 ### 第 1 步：一键部署
 
 1. 点上方 **Deploy to Cloudflare** 按钮，登录 Cloudflare
-2. 按提示连接 GitHub 并授权。Cloudflare 会把本仓库复制一份到你的 GitHub 账户，以后在那里改代码会自动重新部署
+2. 按提示连接 GitHub 并授权。Cloudflare 会把本仓库 Fork 到你的 GitHub 账户。
 3. 项目名称保持 `cf-imghub` 或自己改
 4. R2 桶保持新建，名称可以改
 5. 依次填写下面 5 个密钥：
@@ -82,7 +82,7 @@
 
 ### 第 2 步：绑定自己的域名（推荐）
 
-`workers.dev` 地址用不上 Cloudflare 的边缘缓存，每次都要读 R2，正式使用请绑定域名：
+根据官方说明，`workers.dev` 地址无法读取 Cloudflare 的边缘缓存，每次都要读 R2，因此正式使用强烈建议绑定域名：
 
 1. 打开 [Cloudflare 控制台](https://dash.cloudflare.com/)，左侧选「Workers 和 Pages」，点进 `cf-imghub`
 2. 进入「设置」→「域和路由」→「添加」→「自定义域」
@@ -102,8 +102,8 @@
 | 模式 | 说明 |
 |------|------|
 | 仅 R2（默认） | 最快 |
-| R2 + Telegram 备份 | 照常从 R2 读取，另存一份到 Telegram；R2 里找不到时自动改从 Telegram 读 |
-| 仅 Telegram | 不占 R2 空间（R2 只留很小的索引）；没被缓存的图片首次打开慢 0.5–3 秒；单个文件最大 100MB |
+| R2 + Telegram | 照常从 R2 读取，另存一份到 Telegram（容灾）；R2 里找不到时自动改从 Telegram 读 |
+| 仅 Telegram | 不占 R2 空间（R2 只留很小的索引）；没被缓存的图片首次时打开慢 0.5–3 秒；单个文件最大 100MB |
 
 1. **建 bot**：在 Telegram 打开 [@BotFather](https://t.me/BotFather)，发送 `/newbot`，按提示起名，最后会收到形如 `123456789:AA…` 的 token。token 相当于 bot 的密码，不要公开
 2. **建频道**：新建一个频道，设为私有即可
