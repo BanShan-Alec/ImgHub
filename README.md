@@ -52,6 +52,29 @@
 - **脚本上传**：用 Bearer Token 调用 `/api/upload`
 - Material 3 Expressive 界面，亮 / 暗色，自定义色彩搭配，简体中文 / 繁體中文 / English
 
+## 截图
+
+<details>
+<summary>展开截图</summary>
+
+**上传页**
+
+<img src="assets/screenshots/upload.avif" width="100%" alt="上传页">
+
+**后台管理**
+
+<img src="assets/screenshots/admin.avif" width="100%" alt="后台管理">
+
+**图床设置**
+
+<img src="assets/screenshots/settings.avif" width="100%" alt="图床设置">
+
+**登录页**
+
+<img src="assets/screenshots/login.avif" width="100%" alt="登录页">
+
+</details>
+
 ## 部署
 
 <details>

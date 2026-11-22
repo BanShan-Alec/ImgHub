@@ -52,6 +52,29 @@ The server never modifies file bytes.
 - **Script uploads**: call `/api/upload` with a Bearer token
 - Material 3 Expressive UI, light / dark, custom color schemes, 简体中文 / 繁體中文 / English
 
+## Screenshots
+
+<details>
+<summary>Show screenshots</summary>
+
+**Upload**
+
+<img src="screenshots/upload.avif" width="100%" alt="Upload">
+
+**Admin**
+
+<img src="screenshots/admin.avif" width="100%" alt="Admin">
+
+**Settings**
+
+<img src="screenshots/settings.avif" width="100%" alt="Settings">
+
+**Sign-in**
+
+<img src="screenshots/login.avif" width="100%" alt="Sign-in">
+
+</details>
+
 ## Deploy
 
 <details>
